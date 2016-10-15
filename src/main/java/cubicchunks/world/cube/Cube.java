@@ -28,6 +28,7 @@ import cubicchunks.CubicChunks;
 import cubicchunks.util.AddressTools;
 import cubicchunks.util.Coords;
 import cubicchunks.util.CubeCoords;
+import cubicchunks.util.ticket.TicketList;
 import cubicchunks.world.EntityContainer;
 import cubicchunks.world.ICubicWorld;
 import cubicchunks.world.ICubicWorldServer;
@@ -72,6 +73,7 @@ public class Cube {
 	//used to track if the cube should be unloaded or not, done instead of removing cube from
 	//unloadQueue each time something loads it
 	public  boolean unloaded;
+	private TicketList tickets; // tickets prevent this Cube from being unloaded
 
 	private boolean isModified = false;
 	private boolean isPopulated = false;
@@ -82,8 +84,8 @@ public class Cube {
 	private Column column;
 
 	private CubeCoords coords;
-	private ExtendedBlockStorage storage;
 
+	private ExtendedBlockStorage storage;
 	private EntityContainer entities;
 	private Map<BlockPos, TileEntity> tileEntityMap;
 
@@ -100,6 +102,8 @@ public class Cube {
 		this.world = column.getCubicWorld();
 		this.column = column;
 		this.coords = new CubeCoords(column.getX(), cubeY, column.getZ());
+
+		this.tickets = new TicketList();
 
 		this.entities = new EntityContainer();
 		this.tileEntityMap = new HashMap<>();
@@ -162,12 +166,8 @@ public class Cube {
 		} catch (Throwable t) {
 			CrashReport report = CrashReport.makeCrashReport(t, "Getting block state");
 			CrashReportCategory category = report.makeCategory("Block being got");
-			category.setDetail("Location", new ICrashReportDetail<String>() {
-				@Override
-				public String call() throws Exception {
-					return CrashReportCategory.getCoordinateInfo(blockX, blockY, blockZ);
-				}
-			});
+			category.setDetail("Location", () ->
+					CrashReportCategory.getCoordinateInfo(blockX, blockY, blockZ));
 			throw new ReportedException(report);
 		}
 	}
@@ -585,6 +585,10 @@ public class Cube {
 		this.isModified = false;
 	}
 
+	public TicketList getTickets(){
+		return tickets;
+	}
+
 	public void markForRenderUpdate() {
 		this.world.markBlockRangeForRenderUpdate(
 				Coords.cubeToMinBlock(this.coords.getCubeX()), Coords.cubeToMinBlock(this.coords.getCubeY()), Coords.cubeToMinBlock(this.coords.getCubeZ()),
@@ -642,13 +646,6 @@ public class Cube {
 
 	public boolean isInitialLightingDone() {
 		return isInitialLightingDone;
-	}
-
-	/**
-	 * Lights up all blocks that will definitely be lit. It's faster than using world.checkLightFor on everything.
-	 */
-	public void initSkyLight() {
-		((ICubicWorldServer)this.getWorld()).getFirstLightProcessor().initializeSkylight(this);
 	}
 
 	public static class LightUpdateData {
