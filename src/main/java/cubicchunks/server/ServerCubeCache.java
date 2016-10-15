@@ -102,7 +102,7 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 	public void unloadAllChunks() {
 		// unload all the cubes in the columns
 		for(Cube cube : cubemap) {
-			cubesToUnload.add(cube.getCoords());
+			unloadCube(cube);
 		}
 	}
 
@@ -203,8 +203,11 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 
 				column.onChunkUnload();
 				this.id2ChunkMap.remove(address);
-				this.cubeIO.saveColumn(column);
 				unloaded++;
+
+				if(column.needsSaving(true)) {
+					this.cubeIO.saveColumn(column);
+				}
 			}
 		}
 	}
@@ -225,7 +228,9 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 				cube.getColumn().removeCube(coords.getCubeY());
 				cubemap.remove(cube.getX(), cube.getY(), cube.getZ());
 
-				this.cubeIO.saveCube(cube);
+				if(cube.needsSaving()) {
+					this.cubeIO.saveCube(cube);
+				}
 			}
 		}
 	}
@@ -288,7 +293,6 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 	@Override
 	@Nullable
 	public Cube getCube(int cubeX, int cubeY, int cubeZ, Requirement req) {
-
 		Cube cube = getLoadedCube(cubeX, cubeY, cubeZ);
 		if(req == Requirement.CACHE || 
 				(cube != null && req.compareTo(Requirement.GENERATE) <= 0)) {
@@ -455,6 +459,10 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 	}
 
 	public void unloadCube(Cube cube) {
+		if(cube.unloaded){
+			return; // its already being unloaded
+		}
+
 		// don't unload cubes near the spawn
 		if (cubeIsNearSpawn(cube)) {
 			return;
@@ -466,6 +474,10 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 	}
 
 	public void unloadColumn(Column column) {
+		if(column.unloaded){
+			return; // its already being unloaded
+		}
+
 		//unload all cubes in that column
 		//since it's unloading the whole column - ignore vanilla
 		//this allows to special-case 0-255 height range with VanillaCubic
