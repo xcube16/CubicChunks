@@ -152,30 +152,41 @@ public class CubeHashMap implements Iterable<Cube> {
 	}
 
 	public Iterator<Cube> iterator() {
-		int start;
-		for (start = 0; start < buckets.length; start++) {
-			if (buckets[start] != null) {
-				break;
-			}
-		}
-
-		final int f = start; // hacks just so I could use an anonymous class :P
-
 		return new Iterator<Cube>() {
-			int at = f;
+			int at = 0;
+			int next = 0;
 
 			@Override public boolean hasNext() {
-				return at < buckets.length;
+				if(next > at){
+					return true;
+				}
+				for (next++; next < buckets.length; next++) {
+					if (buckets[next] != null) {
+						return true;
+					}
+				}
+				return false;
 			}
 
 			@Override public Cube next() {
-				Cube ret = buckets[at];
-				for (at++; at < buckets.length; at++) {
-					if (buckets[at] != null) {
-						break;
+				if(next > at){
+					at = next;
+					return buckets[at];
+				}
+				for (next++; next < buckets.length; next++) {
+					if (buckets[next] != null) {
+						at = next;
+						return buckets[at];
 					}
 				}
-				return ret;
+				return null;
+			}
+
+			//TODO: WARNING: risk of iterating over the same item more than once if this is used
+			//               do to items wrapping back around form the front of the buckets array
+			@Override public void remove(){
+				collapseSlot(at);
+				next = at = at - 1; // There could be a new item in the removed bucket
 			}
 		};
 	}

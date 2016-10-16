@@ -80,35 +80,11 @@ public abstract class MixinWorldServer extends MixinWorld implements ICubicWorld
 		this.lightingManager = new LightingManager(this);
 
 		this.thePlayerManager = new PlayerCubeMap(this);
-		this.chunkGc = new ChunkGc(getCubeCache(), getPlayerCubeMap());
+		this.chunkGc = new ChunkGc(getCubeCache());
 
 		this.saveHandler = new CubicChunksSaveHandler(this, this.getSaveHandler());
 
 		this.firstLightProcessor = new FirstLightProcessor(this);
-	}
-
-	@Override public void generateWorld() {
-		ServerCubeCache serverCubeCache = this.getCubeCache();
-
-		// load the cubes around the spawn point
-		CubicChunks.LOGGER.info("Loading cubes for spawn...");
-		final int spawnDistance = ServerCubeCache.SPAWN_LOAD_RADIUS;
-		BlockPos spawnPoint = this.getSpawnPoint();
-		int spawnCubeX = Coords.blockToCube(spawnPoint.getX());
-		int spawnCubeY = Coords.blockToCube(spawnPoint.getY());
-		int spawnCubeZ = Coords.blockToCube(spawnPoint.getZ());
-		for (int cubeX = spawnCubeX - spawnDistance; cubeX <= spawnCubeX + spawnDistance; cubeX++) {
-			for (int cubeZ = spawnCubeZ - spawnDistance; cubeZ <= spawnCubeZ + spawnDistance; cubeZ++) {
-				for (int cubeY = spawnCubeY + spawnDistance; cubeY >= spawnCubeY - spawnDistance; cubeY--) {
-					serverCubeCache.getCube(cubeX, cubeY, cubeZ, IProviderExtras.Requirement.LIGHT);
-					//TODO: progress reporting
-				}
-			}
-		}
-
-		// don't save cubes here. Vanilla doesn't do that.
-		// and saving chunks here would be extremely slow
-		// serverCubeCache.saveAllChunks();
 	}
 
 	@Override public void tickCubicWorld() {

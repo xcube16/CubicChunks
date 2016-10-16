@@ -52,9 +52,6 @@ public class CommonEventHandler {
 		}
 
 		world.initCubicWorld();
-		if(!world.isRemote()) {
-			((ICubicWorldServer)world).generateWorld();
-		}
 	}
 
 	@SubscribeEvent
