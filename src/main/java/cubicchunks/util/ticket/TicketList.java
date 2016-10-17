@@ -74,8 +74,7 @@ public class TicketList {
 	 * @return Should the world be ticking the Cube corresponding to this ticket list
 	 */
 	public boolean shouldTick(){
-		ITicket first = list.getFirst(); // Note: things are sorted
-		return first != null && first.shouldTick();
+		return list.size() > 0 && list.getFirst().shouldTick(); // Note: things are sorted
 	}
 
 	/**

@@ -131,9 +131,9 @@ public class Column extends Chunk {
 	}
 
 	@Override
-	@Deprecated // Vanila can safely use this for block ticking, but just try to avoid it!
+	@Deprecated // Vanilla can safely use this for block ticking, but just try to avoid it!
 	public ExtendedBlockStorage[] getBlockStorageArray() {
-		return cubeMap.getStorageArrays();
+		return cubeMap.getStoragesToTick();
 	}
 
 	@SideOnly(Side.CLIENT)
@@ -486,6 +486,15 @@ public class Column extends Chunk {
 		return true; //TODO: stub, replace with new UnsupportedOperationException();
 	}
 
+	public boolean shouldTick(){
+		for(Cube cube : cubeMap){
+			if(cube.getTickets().shouldTick()){
+				return true;
+			}
+		}
+		return false;
+	}
+
 	@Override
 	public void removeInvalidTileEntity(@Nonnull BlockPos pos) {
 		throw new UnsupportedOperationException("Not implemented because not used");
@@ -530,7 +539,7 @@ public class Column extends Chunk {
 	}
 
 	public Collection<Cube> getLoadedCubes() {
-		return Collections.unmodifiableCollection(this.cubeMap.all());
+		return this.cubeMap.all();
 	}
 
 	/**
@@ -550,7 +559,7 @@ public class Column extends Chunk {
 	}
 
 	public void addCube(Cube cube) {
-		this.cubeMap.put(cube.getY(), cube);
+		this.cubeMap.put(cube);
 	}
 
 	public Cube removeCube(int cubeY) {
