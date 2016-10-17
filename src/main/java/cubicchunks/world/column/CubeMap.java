@@ -71,10 +71,6 @@ class CubeMap implements Iterable<Cube> {
 		int bottom = binarySearch(startY);
 		int top = binarySearch(endY + 1); // subList()'s second arg is exclusive so we need to add 1
 
-		if(cubes.size() > 0 && (cubes.get(bottom).getY() < startY || cubes.get(top - 1).getY() > endY)){
-			System.out.println("error"); //TODO: remove this, it was for debugging
-		}
-
 		if(bottom < cubes.size() && top <= cubes.size()){
 			return reverse ? Lists.reverse(cubes.subList(bottom, top)) : cubes.subList(bottom, top);
 		}else{
