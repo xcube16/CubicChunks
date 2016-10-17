@@ -27,7 +27,7 @@ import cubicchunks.CubicChunks;
 import cubicchunks.server.chunkio.CubeIO;
 import cubicchunks.util.Coords;
 import cubicchunks.util.CubeCoords;
-import cubicchunks.util.CubeHashMap;
+import cubicchunks.util.XYZMap;
 import cubicchunks.world.ICubeCache;
 import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.IProviderExtras;
@@ -75,7 +75,7 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 	private Queue<ChunkPos> columnsToUnload;
 
 	// TODO: Use a better hash map!
-	private CubeHashMap cubemap = new CubeHashMap(0.7f, 13);
+	private XYZMap<Cube> cubeMap = new XYZMap<>(0.7f, 13);
 
 	private ICubeGenerator   cubeGen;
 
@@ -101,7 +101,7 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 	@Override
 	public void unloadAllChunks() {
 		// unload all the cubes in the columns
-		for(Cube cube : cubemap) {
+		for(Cube cube : cubeMap) {
 			cubesToUnload.add(cube.getCoords());
 		}
 	}
@@ -218,12 +218,12 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 			iter.remove();
 			++processed;
 
-			Cube cube = cubemap.get(coords.getCubeX(), coords.getCubeY(), coords.getCubeZ());
+			Cube cube = cubeMap.get(coords.getCubeX(), coords.getCubeY(), coords.getCubeZ());
 
 			if (cube != null && cube.unloaded) {
 				cube.onUnload();
 				cube.getColumn().removeCube(coords.getCubeY());
-				cubemap.remove(cube.getX(), cube.getY(), cube.getZ());
+				cubeMap.remove(cube.getX(), cube.getY(), cube.getZ());
 
 				this.cubeIO.saveCube(cube);
 			}
@@ -273,7 +273,7 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 
 	@Override
 	public Cube getLoadedCube(int cubeX, int cubeY, int cubeZ) {
-		Cube cube = cubemap.get(cubeX, cubeY, cubeZ);
+		Cube cube = cubeMap.get(cubeX, cubeY, cubeZ);
 		if(cube != null) {
 			cube.unloaded = false;
 		}
@@ -315,7 +315,7 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 
 			if(cube != null) {
 				column.addCube(cube);
-				cubemap.put(cube); // cache the Cube
+				cubeMap.put(cube); // cache the Cube
 				cube.onLoad();             // init the Cube
 
 				if(req.compareTo(Requirement.GENERATE) <= 0) {
@@ -332,7 +332,7 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 			cube = new Cube(column, cubeY, primer);
 
 			column.addCube(cube);
-			cubemap.put(cube); // cache the Cube
+			cubeMap.put(cube); // cache the Cube
 			this.worldServer.getFirstLightProcessor().initializeSkylight(cube); // init sky light, (does not require any other cubes, just OpacityIndex)
 			cube.onLoad(); // init the Cube
 
