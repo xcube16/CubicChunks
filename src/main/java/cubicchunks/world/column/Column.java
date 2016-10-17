@@ -542,12 +542,21 @@ public class Column extends Chunk {
 		return this.cubeMap.all();
 	}
 
+
+	// =========================================
+	// =======Mini CubeCache like methods=======
+	// =========================================
+
 	/**
 	 * Returns ordered Iterable of cubes. If startY < endY - order is bottom to top.
 	 * If startY > endY - order is top to bottom.
 	 */
 	public Iterable<Cube> getLoadedCubes(int startY, int endY) {
 		return this.cubeMap.cubes(startY, endY);
+	}
+
+	public Cube getLoadedCube(int cubeY){
+		return provider.getLoadedCube(getX(), cubeY, getZ());
 	}
 
 	public Cube getCube(int cubeY) {
@@ -569,6 +578,9 @@ public class Column extends Chunk {
 	public boolean hasLoadedCubes() {
 		return !this.cubeMap.isEmpty();
 	}
+
+	// ======= end cube cache like methods =======
+	// ===========================================
 
 	public void markSaved() {
 		this.setModified(false);
