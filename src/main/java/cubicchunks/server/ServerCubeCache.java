@@ -27,6 +27,7 @@ import cubicchunks.CubicChunks;
 import cubicchunks.server.chunkio.CubeIO;
 import cubicchunks.util.CubeCoords;
 import cubicchunks.util.CubeHashMap;
+import cubicchunks.util.ticket.ITicket;
 import cubicchunks.world.ICubeCache;
 import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.IProviderExtras;
@@ -179,7 +180,7 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 		return cubeGen.getClosestStructure(name, pos);
 	}
 
-	// getLoadedChunkCount() in ChunkProviderServer is fine - MC: 1.10.2 Forge: 12.18.1.209
+	// getLoadedChunkCount() in ChunkProviderServer is fine - CHECKED: 1.10.2-12.18.1.2092
 
 	@Override
 	public boolean chunkExists(int cubeX, int cubeZ) {
@@ -240,7 +241,7 @@ public class ServerCubeCache extends ChunkProviderServer implements ICubeCache, 
 			if(cube != null) {
 				column.addCube(cube);
 				cubemap.put(cube); // cache the Cube
-				cube.onLoad();             // init the Cube
+				cube.onLoad();     // init the Cube
 
 				if(req.compareTo(Requirement.GENERATE) <= 0) {
 					return cube;

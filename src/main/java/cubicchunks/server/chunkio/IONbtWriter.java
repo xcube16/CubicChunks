@@ -148,10 +148,6 @@ class IONbtWriter {
 						entity.chunkCoordX, entity.chunkCoordY, entity.chunkCoordZ
 				));
 			}
-			entity.addedToChunk = false; // World tries to remove entities from Cubes
-										 // if (addedToCube || Column is loaded)
-										 // so we need to set addedToChunk to false as a hack!
-										 // else World would reload this Cube!
 		});
 	}
 
