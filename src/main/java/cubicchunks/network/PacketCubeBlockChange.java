@@ -60,10 +60,14 @@ public class PacketCubeBlockChange implements IMessage {
 	}
 
 	public PacketCubeBlockChange(Cube cube, TShortCollection localAddresses) {
+		this(cube, localAddresses.toArray());
+	}
+
+	public PacketCubeBlockChange(Cube cube, short[] localAddresses) {
 		this.cubePos = cube.getCoords();
-		this.localAddresses = localAddresses.toArray();
-		this.blockStates = new IBlockState[localAddresses.size()];
-		int i = localAddresses.size() - 1;
+		this.localAddresses = localAddresses;
+		this.blockStates = new IBlockState[localAddresses.length];
+		int i = localAddresses.length - 1;
 		IntSet xzAddresses = new IntHashSet();
 		for (; i >= 0; i--) {
 			int localAddress = this.localAddresses[i];
@@ -73,6 +77,7 @@ public class PacketCubeBlockChange implements IMessage {
 			this.blockStates[i] = cube.getBlockState(x, y, z);
 			xzAddresses.add(x | z << 4);
 		}
+		// TODO: Don't send height map changes here
 		this.heightValues = new int[xzAddresses.size()];
 		i = 0;
 		for (IntCursor v : xzAddresses) {

@@ -54,19 +54,26 @@ public class PacketCube implements IMessage {
 	private int[] heightMap;
 	private CubePos cubePos;
 	private byte[] data;
+
+	private boolean preserveTEs;
 	private List<NBTTagCompound> tileEntityTags;
 
 	public PacketCube() {
 	}
 
-	public PacketCube(Cube cube) {
+	public PacketCube(Cube cube, Collection<TileEntity> tileEntities) {
 		this.cubePos = cube.getCoords();
 		this.data = new byte[WorldEncoder.getEncodedSize(cube)];
 		PacketBuffer out = new PacketBuffer(WorldEncoder.createByteBufForWrite(this.data));
 
 		WorldEncoder.encodeCube(out, cube);
 
-		Collection<TileEntity> tileEntities = cube.getTileEntityMap().values();
+		if (tileEntities == null) {
+			tileEntities = cube.getTileEntityMap().values();
+		}else{
+			preserveTEs = true;
+		}
+
 		this.tileEntityTags = new ArrayList<>(tileEntities.size());
 		this.tileEntityTags.addAll(tileEntities.stream().map(TileEntity::getUpdateTag).collect(Collectors.toList()));
 		this.heightMap = new int[Cube.SIZE*Cube.SIZE];
@@ -78,9 +85,14 @@ public class PacketCube implements IMessage {
 		}
 	}
 
+	public PacketCube(Cube cube) {
+		this(cube, null);
+	}
+
 	@Override
 	public void fromBytes(ByteBuf buf) {
 		this.cubePos = new CubePos(buf.readInt(), buf.readInt(), buf.readInt());
+		this.preserveTEs = buf.readBoolean();
 		this.data = new byte[buf.readInt()];
 		buf.readBytes(this.data);
 		int numTiles = buf.readInt();
@@ -99,6 +111,7 @@ public class PacketCube implements IMessage {
 		buf.writeInt(cubePos.getX());
 		buf.writeInt(cubePos.getY());
 		buf.writeInt(cubePos.getZ());
+		buf.writeBoolean(this.preserveTEs);
 		buf.writeInt(this.data.length);
 		buf.writeBytes(this.data);
 		buf.writeInt(this.tileEntityTags.size());
@@ -122,8 +135,8 @@ public class PacketCube implements IMessage {
 		return Iterables.unmodifiableIterable(this.tileEntityTags);
 	}
 
-	int height(int localX, int localZ) {
-		return heightMap[index(localX, localZ)];
+	public boolean preserveTileEntities() {
+		return preserveTEs;
 	}
 
 	public static class Handler extends AbstractClientMessageHandler<PacketCube> {
