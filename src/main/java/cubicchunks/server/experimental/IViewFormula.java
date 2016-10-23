@@ -21,35 +21,43 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package cubicchunks.util;
+package cubicchunks.server.experimental;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import net.minecraft.entity.player.EntityPlayerMP;
 
-import mcp.MethodsReturnNonnullByDefault;
+import javax.annotation.Nullable;
 
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
-public class Box {
+import cubicchunks.util.XYZFunction;
 
-	private final int x1, y1, z1;
-	private final int x2, y2, z2;
+/**
+ * A formula that can be used to calculate the area visible for a player
+ * This must be immutable, next is used to advance the area to a new location
+ */
+public interface IViewFormula {
 
-	public Box(int x1, int y1, int z1, int x2, int y2, int z2) {
-		this.x1 = x1;
-		this.y1 = y1;
-		this.z1 = z1;
-		this.x2 = x2;
-		this.y2 = y2;
-		this.z2 = z2;
-	}
+	/**
+	 * Capture another state snapshot into a new IViewFormula if there was significant change
+	 *
+	 * @param player the player to capture the new state form
+	 * @return A new StateSnapshot or null
+	 */
+	@Nullable
+	IViewFormula next(EntityPlayerMP player);
 
-	public void forEachPoint(XYZFunction function) {
-		for (int x = x1; x <= x2; x++) {
-			for (int y = y1; y <= y2; y++) {
-				for (int z = z1; z <= z2; z++) {
-					function.apply(x, y, z);
-				}
-			}
-		}
-	}
+	/**
+	 * Compute all the points within the area
+	 *
+	 * @param output the computed points should be passed to this function, with no duplicates
+	 */
+	void computePositions(XYZFunction output);
+
+	/**
+	 * Checks to see if a point is contained within the area at {@code state}
+	 *
+	 * @param x the x coordinate
+	 * @param y the y coordinate
+	 * @param z the z coordinate
+	 * @return true if the point is within the area
+	 */
+	boolean contains(int x, int y, int z);
 }

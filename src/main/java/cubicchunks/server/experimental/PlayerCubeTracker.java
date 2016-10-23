@@ -1,6 +1,8 @@
 package cubicchunks.server.experimental;
 
 import com.google.common.collect.AbstractIterator;
+
+import cubicchunks.util.Coords;
 import cubicchunks.util.XYZMap;
 import cubicchunks.world.column.Column;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -19,8 +21,8 @@ import java.util.List;
  */
 public class PlayerCubeTracker implements  IPCM_Vanilla {
 
-	private XYZMap<TrackerUnit> watcherMap = new XYZMap<>(0.75F, 8000);
-	private List<TrackerUnit>   watchers   = new ArrayList<>();
+	private XYZMap<TrackerUnit> unitsMap = new XYZMap<>(0.75F, 4000);
+	private List<TrackerUnit>   units   = new ArrayList<>();
 
 	public PlayerCubeTracker() {
 
@@ -35,7 +37,16 @@ public class PlayerCubeTracker implements  IPCM_Vanilla {
 	 *
 	 * @param pos The position of the block that changed
 	 */
-	public void markBlockForUpdate(BlockPos pos);
+	public void markBlockForUpdate(BlockPos pos) {
+		TrackerUnit unit = this.getUnit(
+			Coords.blockToCube(pos.getX()),
+			Coords.blockToCube(pos.getY()),
+			Coords.blockToCube(pos.getZ()));
+
+		if (unit != null) {
+			unit.blockChanged(pos);
+		}
+	}
 
 	/**
 	 * Adds a player
@@ -152,5 +163,14 @@ public class PlayerCubeTracker implements  IPCM_Vanilla {
 				return this.endOfData();
 			}
 		};
+	}
+
+	// ===============================
+	// ======= Private Methods =======
+	// ===============================
+
+	@Nullable
+	private TrackerUnit getUnit(int cubeX, int cubeY, int cubeZ) {
+		return unitsMap.get(cubeX, cubeY, cubeZ);
 	}
 }

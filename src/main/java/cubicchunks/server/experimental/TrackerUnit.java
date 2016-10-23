@@ -20,24 +20,28 @@ import cubicchunks.network.PacketCube;
 import cubicchunks.network.PacketCubeBlockChange;
 import cubicchunks.network.PacketDispatcher;
 import cubicchunks.network.PacketUnloadCube;
-import cubicchunks.util.AddressTools;
-import cubicchunks.util.Coords;
 import cubicchunks.util.CubePos;
 import cubicchunks.util.XYZAddressable;
 import cubicchunks.util.ticket.ITicket;
 import cubicchunks.world.IProviderExtras;
 import cubicchunks.world.cube.Cube;
 
+/**
+ * Cubic Chunks version of PlayerChunkMapEntry
+ */
 public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
 
 	private PlayerCubeTracker tracker;
 
 	private CubePos pos;
 	private Cube cube = null;
+
 	private IProviderExtras.Requirement requestLevel = null;
 
+	// buffers small to medium numbers of block changes
 	private BlockUpdateBuffer changeBuffer = new BlockUpdateBuffer();
 
+	// the players that can see this Cube
 	private List<EntityPlayerMP> players = Lists.newArrayListWithExpectedSize(1);
 
 	public TrackerUnit(PlayerCubeTracker tracker, EntityPlayerMP player, CubePos pos){
@@ -51,19 +55,26 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
 		if (this.players.contains(player)) {
 			throw new IllegalStateException("Failed to add player. " + player + " already is in cube at " + coords);
 		}
-
-		checkRequirement(tracker.getPlayerReq(player));
-
 		players.add(player);
-		if(cube != null){
-			sendToPlayer(player);
+
+		if(checkRequirement(tracker.getPlayerReq(player))){
+			// cube is already ready, so send it
+			sendPacket(new PacketCube(this.cube));
 		}
 	}
 
-	void checkRequirement(IProviderExtras.Requirement newReq){
+	/**
+	 * Checks to see if the cube we have meets the Requirement
+	 *
+	 * @param newReq
+	 * @return true if the cube immediately meets the Requirement
+	 */
+	boolean checkRequirement(IProviderExtras.Requirement newReq){
 		if(requestLevel == null || requestLevel.compareTo(newReq) < 0){
-			tracker.getCubeProvider().getCubeAsync(this, newReq);
+			tracker.getCubeProvider().getCubeAsync(this, pos, newReq);
+			return false;
 		}
+		return true;
 	}
 
 	void removePlayer(EntityPlayerMP player){
@@ -88,6 +99,9 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
 
 	void blockChanged(BlockPos pos) {
 		if(cube != null){
+			if (this.changeBuffer.getChanges() == 0) {
+				this.tracker.needsFlush(this); // the first block change is being added
+			}
 			IBlockState state = cube.getBlockState(pos);
 			changeBuffer.track(pos, state.getBlock().hasTileEntity(state));
 		}
