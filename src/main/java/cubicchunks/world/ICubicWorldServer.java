@@ -32,7 +32,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.lighting.FirstLightProcessor;
 import cubicchunks.server.CubeProviderServer;
-import cubicchunks.server.PlayerCubeMap;
+import cubicchunks.server.experimental.PlayerCubeTracker;
 import mcp.MethodsReturnNonnullByDefault;
 
 @ParametersAreNonnullByDefault
@@ -41,7 +41,7 @@ public interface ICubicWorldServer extends ICubicWorld {
 
 	CubeProviderServer getCubeCache();
 
-	PlayerCubeMap getPlayerCubeMap();
+	PlayerCubeTracker getPlayerCubeMap();
 
 	FirstLightProcessor getFirstLightProcessor();
 

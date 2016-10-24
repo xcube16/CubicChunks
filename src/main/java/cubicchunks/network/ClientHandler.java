@@ -38,10 +38,10 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import cubicchunks.CubicChunks;
 import cubicchunks.client.CubeProviderClient;
 import cubicchunks.lighting.LightingManager;
+import cubicchunks.util.Bits;
 import cubicchunks.util.CubePos;
 import cubicchunks.world.ClientHeightMap;
 import cubicchunks.world.ICubicWorldClient;
-import cubicchunks.world.IHeightMap;
 import cubicchunks.world.column.Column;
 import cubicchunks.world.cube.BlankCube;
 import cubicchunks.world.cube.Cube;
@@ -82,11 +82,9 @@ public class ClientHandler implements INetHandler {
 			return;
 		}
 
-		Cube cube;
-		if (cubeCache.getLoadedCube(cubePos) == null) {
+		Cube cube = cubeCache.getLoadedCube(cubePos); // cube update
+		if (cube == null) {
 			cube = cubeCache.loadCube(column, cubePos.getY()); // new cube
-		} else {
-			cube = column.getCube(cubePos.getY()); // cube update
 		}
 
 		byte[] data = packet.getData();
@@ -105,18 +103,6 @@ public class ClientHandler implements INetHandler {
 				tileEntity.handleUpdateTag(tag);
 			}
 		}
-
-		IHeightMap heightMap = column.getOpacityIndex();
-		LightingManager lightManager = worldClient.getLightingManager();
-		for (int localX = 0; localX < Cube.SIZE; localX++) {
-			for (int localZ = 0; localZ < Cube.SIZE; localZ++) {
-				int oldHeight = heightMap.getTopBlockY(localX, localZ);
-				int newHeight = packet.height(localX, localZ);
-				if (oldHeight != newHeight) {
-					lightManager.onHeightMapUpdate(column, localX, localZ, oldHeight, newHeight);
-				}
-			}
-		}
 	}
 
 	public void handle(PacketColumn packet) {
@@ -129,14 +115,17 @@ public class ClientHandler implements INetHandler {
 		ICubicWorldClient worldClient = (ICubicWorldClient) Minecraft.getMinecraft().world;
 		CubeProviderClient cubeCache = worldClient.getCubeCache();
 
-		ChunkPos chunkPos = packet.getChunkPos();
+		ChunkPos pos = packet.getChunkPos();
 
-		Column column = cubeCache.loadChunk(chunkPos.chunkXPos, chunkPos.chunkZPos);
+		Column column = cubeCache.getLoadedColumn(pos.chunkXPos, pos.chunkZPos); // Column update
+		if (column == null) {
+			column = cubeCache.loadChunk(pos.chunkXPos, pos.chunkZPos); // new Column
+		}
 
 		byte[] data = packet.getData();
 		ByteBuf buf = WorldEncoder.createByteBufForRead(data);
 
-		WorldEncoder.decodeColumn(new PacketBuffer(buf), column);
+		WorldEncoder.decodeColumn(new PacketBuffer(buf), column, packet.hasBiomes());
 	}
 
 	public void handle(final PacketUnloadCube packet) {
@@ -183,24 +172,36 @@ public class ClientHandler implements INetHandler {
 			return;
 		}
 
-		ClientHeightMap index = (ClientHeightMap) cube.getColumn().getOpacityIndex();
-		LightingManager lm = worldClient.getLightingManager();
-		for (int hmapUpdate : packet.heightValues) {
-			int x = hmapUpdate & 0xF;
-			int z = (hmapUpdate >> 4) & 0xF;
-			//height is signed, so don't use unsigned shift
-			int height = hmapUpdate >> 8;
-
-			int oldHeight = index.getTopBlockY(x, z);
-			index.setHeight(x, z, height);
-
-			lm.onHeightMapUpdate(cube.getColumn(), x, z, oldHeight, height);
-		}
 		// apply the update
 		for (int i = 0; i < packet.localAddresses.length; i++) {
 			BlockPos pos = cube.localAddressToBlockPos(packet.localAddresses[i]);
 			worldClient.invalidateRegionAndSetBlock(pos, packet.blockStates[i]);
 		}
 		cube.getTileEntityMap().values().forEach(TileEntity::updateContainingBlockInfo);
+	}
+
+	public void handle(final PacketHeightChanges packet) {
+		IThreadListener taskQueue = Minecraft.getMinecraft();
+		if (!taskQueue.isCallingFromMinecraftThread()) {
+			taskQueue.addScheduledTask(() -> handle(packet));
+			return;
+		}
+
+		ICubicWorldClient worldClient = (ICubicWorldClient) Minecraft.getMinecraft().world;
+		CubeProviderClient cubeCache = worldClient.getCubeCache();
+
+		Column column = cubeCache.provideColumn(packet.pos.chunkXPos, packet.pos.chunkZPos);
+
+		ClientHeightMap heightMap = (ClientHeightMap) column.getOpacityIndex();
+		LightingManager lm = worldClient.getLightingManager();
+		for(int i = 0;i < packet.heightValues.length;i++){
+			int x = Bits.unpackUnsigned(packet.localAddresses[i], 4, 0);
+			int z = Bits.unpackUnsigned(packet.localAddresses[i], 4, 4);
+
+			int oldHeight = heightMap.getTopBlockY(x, z);
+			heightMap.setHeight(x, z, packet.heightValues[i]);
+
+			lm.onHeightMapUpdate(column, x, z, oldHeight, packet.heightValues[i]);
+		}
 	}
 }

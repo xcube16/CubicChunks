@@ -42,6 +42,11 @@ public class VanillaViewFormula implements IViewFormula {
 
 	private final int radius;
 
+	public VanillaViewFormula(EntityPlayerMP player) {
+		this(player.getServerWorld().getMinecraftServer().getPlayerList().getViewDistance(),
+			 player);
+	}
+
 	public VanillaViewFormula(int radius, EntityPlayerMP player) {
 		this.radius = radius;
 
@@ -72,9 +77,9 @@ public class VanillaViewFormula implements IViewFormula {
 
 	@Override
 	public void computePositions(XYZFunction output) {
-		for(int x = cubeX - radius;x >= cubeX + radius;x++){
-			for(int y = cubeY - radius;y >= cubeY + radius;y++){
-				for(int z = cubeZ - radius;z >= cubeZ + radius;z++){
+		for(int x = cubeX - radius;x <= cubeX + radius;x++){
+			for(int y = cubeY - radius;y <= cubeY + radius;y++){
+				for(int z = cubeZ - radius;z <= cubeZ + radius;z++){
 					output.apply(x, y, z);
 				}
 			}

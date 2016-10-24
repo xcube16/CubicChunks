@@ -21,22 +21,9 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package cubicchunks.server;
+package cubicchunks.server.experimental;
 
-import net.minecraft.entity.player.EntityPlayerMP;
+public interface Flushable {
 
-import javax.annotation.Nonnull;
-import javax.annotation.ParametersAreNonnullByDefault;
-
-import mcp.MethodsReturnNonnullByDefault;
-
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
-class WatcherPlayerEntry {
-
-	@Nonnull EntityPlayerMP player;
-
-	WatcherPlayerEntry(EntityPlayerMP player) {
-		this.player = player;
-	}
+	void flush();
 }

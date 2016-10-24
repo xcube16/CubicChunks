@@ -23,6 +23,13 @@
  */
 package cubicchunks.debug;
 
+import net.minecraft.command.ServerCommandManager;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -35,8 +42,21 @@ import static cubicchunks.debug.DebugTools.itemRelightSkyBlock;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class DebugProxy {
+
 	public void initItems() {
+		new DebugCapability().register();
+
 		GameRegistry.register(itemRelightSkyBlock);
 		itemRelightSkyBlock.setCreativeTab(CUBIC_CHUNKS_DEBUG_TAB);
+	}
+
+	public void initServer(MinecraftServer server) {
+		ServerCommandManager commands = (ServerCommandManager) server.getCommandManager();
+		commands.registerCommand(new DebugCommand());
+	}
+
+	@SubscribeEvent
+	public void capabilityThingy(AttachCapabilitiesEvent<EntityPlayerMP> event) {
+		event.addCapability(DebugCapability.KEY, new DebugCapability.Attachment());
 	}
 }

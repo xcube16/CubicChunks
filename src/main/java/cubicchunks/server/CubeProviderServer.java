@@ -43,6 +43,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.server.chunkio.CubeIO;
 import cubicchunks.server.chunkio.async.forge.AsyncWorldIOExecutor;
+import cubicchunks.server.experimental.ICubeRequest;
 import cubicchunks.util.CubePos;
 import cubicchunks.util.XYZMap;
 import cubicchunks.world.ICubeProvider;
@@ -439,6 +440,28 @@ public class CubeProviderServer extends ChunkProviderServer implements ICubeProv
 		column = postProcessColumn(columnX, columnZ, column, req);
 
 		return column;
+	}
+
+	public void getColumnAsync(@Nonnull ChunkPos pos, @Nonnull Requirement req, @Nonnull Consumer<Column> callback) {
+		// STUB, TODO: async
+		callback.accept(getColumn(pos.chunkXPos, pos.chunkZPos, req));
+	}
+
+	public void getCubeAsync(@Nonnull CubePos pos, @Nonnull Requirement req, @Nonnull ICubeRequest callback) {
+		// STUB, TODO: async
+		callback.accept(getCube(pos.getX(), pos.getY(), pos.getZ(), req));
+	}
+
+	public void cancelAsyncColumn(@Nonnull Consumer<Column> callback) {
+		// STUB, TODO: cancel async
+	}
+
+	public void cancelAsyncCube(@Nonnull ICubeRequest callback) {
+		// STUB, TODO: cancel async
+	}
+
+	public void sortAsyncHint() {
+		// STUB
 	}
 
 	/**

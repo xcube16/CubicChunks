@@ -48,6 +48,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import cubicchunks.debug.DebugCapability;
 import cubicchunks.debug.DebugTools;
 import cubicchunks.debug.DebugWorldType;
 import cubicchunks.network.PacketDispatcher;
@@ -107,6 +108,10 @@ public class CubicChunks {
 	@EventHandler
 	public void onServerAboutToStart(FMLServerAboutToStartEvent event) {
 		proxy.setBuildLimit(event.getServer());
+
+		if (DEBUG_ENABLED) {
+			DebugTools.initServer(event.getServer());
+		}
 	}
 
 	@SubscribeEvent

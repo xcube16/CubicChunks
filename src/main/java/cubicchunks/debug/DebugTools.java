@@ -26,6 +26,8 @@ package cubicchunks.debug;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -53,6 +55,11 @@ public class DebugTools {
 	};
 
 	public static void init() {
+		MinecraftForge.EVENT_BUS.register(proxy);
 		proxy.initItems();
+	}
+
+	public static void initServer(MinecraftServer server) {
+		proxy.initServer(server);
 	}
 }

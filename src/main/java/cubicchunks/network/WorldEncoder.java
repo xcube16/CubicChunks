@@ -28,6 +28,7 @@ import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import cubicchunks.lighting.LightingManager;
 import cubicchunks.util.Coords;
 import cubicchunks.world.ClientHeightMap;
 import cubicchunks.world.ServerHeightMap;
@@ -58,23 +59,40 @@ class WorldEncoder {
 				// 4. sky light
 				out.writeBytes(storage.getSkylightArray().getData());
 			}
-
-			// 5. heightmap and bottom-block-y. Each non-empty cube has a chance to update this data.
-			// trying to keep track of when it changes would be complex, so send it wil all cubes
-			byte[] heightmaps = ((ServerHeightMap) cube.getColumn().getOpacityIndex()).getDataForClient();
-			assert heightmaps.length == 256*4;
-			out.writeBytes(heightmaps);
 		}
 	}
 
-	static void encodeColumn(PacketBuffer out, Column column) {
-		// 1. biomes
-		out.writeBytes(column.getBiomeArray());
+	static void encodeColumn(PacketBuffer out, Column column, boolean biomes) {
+		// 1. height map
+		int[] heightmap = column.getOpacityIndex().getHeightmap();
+		for(int height : heightmap){
+			out.writeInt(height);
+		}
+
+		// 2. biomes
+		if(biomes){
+			out.writeBytes(column.getBiomeArray());
+		}
 	}
 
-	static void decodeColumn(PacketBuffer in, Column column) {
-		// 1. biomes
-		in.readBytes(column.getBiomeArray());
+	static void decodeColumn(PacketBuffer in, Column column, boolean biomes) {
+		// 1. height map
+		int[] heightmap = column.getOpacityIndex().getHeightmap();
+		LightingManager lm = column.getCubicWorld().getLightingManager();
+
+		for(int i = 0;i < heightmap.length;i++){
+			int oldHeight = heightmap[i];
+			heightmap[i] = in.readInt();
+
+			if(oldHeight != heightmap[i]){
+				lm.onHeightMapUpdate(column, i & 0xF, i >> 4, oldHeight, heightmap[i]);
+			}
+		}
+
+		// 2. biomes
+		if(biomes) {
+			in.readBytes(column.getBiomeArray());
+		}
 	}
 
 	static void decodeCube(PacketBuffer in, Cube cube) {
@@ -100,12 +118,6 @@ class WorldEncoder {
 				in.readBytes(storage.getSkylightArray().getData());
 			}
 
-			// 5. heightmaps TODO: NO NO NO! Don't send this with Cubes!
-			byte[] heightmaps = new byte[256*4];
-			in.readBytes(heightmaps);
-			ClientHeightMap coi = ((ClientHeightMap) cube.getColumn().getOpacityIndex());
-			coi.setData(heightmaps);
-			//cube.initialClientSkylight();
 			storage.removeInvalidBlocks();
 		}
 	}
@@ -124,8 +136,6 @@ class WorldEncoder {
 			if (!cube.getCubicWorld().getProvider().hasNoSky()) {
 				size += storage.getSkylightArray().getData().length;
 			}
-			//heightmaps
-			size += 256*2*4;
 		}
 		return size;
 	}

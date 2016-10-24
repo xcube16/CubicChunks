@@ -48,8 +48,8 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import cubicchunks.server.CubeWatcher;
 import cubicchunks.util.CubePos;
+import cubicchunks.world.cube.Cube;
 import mcp.MethodsReturnNonnullByDefault;
 
 @ParametersAreNonnullByDefault
@@ -113,9 +113,10 @@ public class CubeWorldEntitySpawner extends WorldEntitySpawner {
 						if (isEdge || !world.getWorldBorder().contains(chunkPos.chunkPos())) {
 							continue;
 						}
-						CubeWatcher chunkInfo = world.getPlayerCubeMap().getCubeWatcher(chunkPos);
+						Cube cube = world.getCubeCache().getLoadedCube(chunkPos);
 
-						if (chunkInfo != null && chunkInfo.isSentToPlayers()) {
+						// spawning entities is like ticking, so check shouldTick()
+						if (cube != null && cube.getTickets().shouldTick()) {
 							possibleChunks.add(chunkPos);
 						}
 					}

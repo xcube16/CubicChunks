@@ -39,6 +39,7 @@ import cubicchunks.util.CubePos;
 import cubicchunks.util.FastCubeBlockAccess;
 import cubicchunks.world.ClientHeightMap;
 import cubicchunks.world.ICubicWorld;
+import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.IHeightMap;
 import cubicchunks.world.column.Column;
 import cubicchunks.world.cube.BlankCube;
@@ -124,6 +125,10 @@ public class LightingManager {
 		column.setModified(true);
 
 		int newTopY = findNewTopBlockY(heightMap, changePos, column, newOpacity, localX, localZ, oldTopY);
+
+		if(!world.isRemote() && oldTopY != newTopY) {
+			((ICubicWorldServer) world).getPlayerCubeMap().markHeightForUpdate(changePos.getX(), changePos.getZ());
+		}
 
 		int minY = Math.min(oldTopY, newTopY);
 		int maxY = Math.max(oldTopY, newTopY);

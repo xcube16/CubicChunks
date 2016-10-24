@@ -1,3 +1,26 @@
+/*
+ *  This file is part of Cubic Chunks Mod, licensed under the MIT License (MIT).
+ *
+ *  Copyright (c) 2015 contributors
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy
+ *  of this software and associated documentation files (the "Software"), to deal
+ *  in the Software without restriction, including without limitation the rights
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *  copies of the Software, and to permit persons to whom the Software is
+ *  furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included in
+ *  all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *  THE SOFTWARE.
+ */
 package cubicchunks.server.experimental;
 
 import com.google.common.collect.Lists;
@@ -29,13 +52,12 @@ import cubicchunks.world.cube.Cube;
 /**
  * Cubic Chunks version of PlayerChunkMapEntry
  */
-public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
+public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flushable {
 
 	private PlayerCubeTracker tracker;
 
 	private CubePos pos;
 	private Cube cube = null;
-
 	private IProviderExtras.Requirement requestLevel = null;
 
 	// buffers small to medium numbers of block changes
@@ -44,7 +66,7 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
 	// the players that can see this Cube
 	private List<EntityPlayerMP> players = Lists.newArrayListWithExpectedSize(1);
 
-	public TrackerUnit(PlayerCubeTracker tracker, EntityPlayerMP player, CubePos pos){
+	TrackerUnit(PlayerCubeTracker tracker, EntityPlayerMP player, CubePos pos){
 		this.tracker = tracker;
 		this.pos = pos;
 
@@ -53,44 +75,47 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
 
 	void addPlayer(EntityPlayerMP player){
 		if (this.players.contains(player)) {
-			throw new IllegalStateException("Failed to add player. " + player + " already is in cube at " + coords);
+			throw new IllegalStateException("Failed to add player. " + player + " already is in cube at " + pos);
 		}
+
 		players.add(player);
 
 		if(checkRequirement(tracker.getPlayerReq(player))){
 			// cube is already ready, so send it
-			sendPacket(new PacketCube(this.cube));
+			PacketDispatcher.sendTo(new PacketCube(this.cube), player);
 		}
 	}
 
 	/**
 	 * Checks to see if the cube we have meets the Requirement
 	 *
-	 * @param newReq
-	 * @return true if the cube immediately meets the Requirement
+	 * @param newReq the Requirement
+	 * @return true if the cube immediately meets the Requirement, and is not null
 	 */
 	boolean checkRequirement(IProviderExtras.Requirement newReq){
 		if(requestLevel == null || requestLevel.compareTo(newReq) < 0){
-			tracker.getCubeProvider().getCubeAsync(this, pos, newReq);
+			requestLevel = newReq;
+			tracker.getProvider().getCubeAsync(pos, newReq, this);
 			return false;
 		}
-		return true;
+		return cube != null;
 	}
 
 	void removePlayer(EntityPlayerMP player){
 		if(!players.remove(player)){
-			throw new IllegalStateException("Failed to remove player. " + player + " is not in cube at " + coords);
+			throw new IllegalStateException("Failed to remove player. " + player + " is not in cube at " + pos);
 		}
 
 		if(cube == null){
 			if(players.isEmpty()){
-				tracker.getCubeProvider().cancelAsyncCube(this); // cancel the request if any
+				tracker.getProvider().cancelAsyncCube(this); // cancel the request if any
 				tracker.removeUnit(this);
 			}
 		}else{
-			PacketDispatcher.sendTo(new PacketUnloadCube(coords.getAddress()), player);
+			PacketDispatcher.sendTo(new PacketUnloadCube(pos), player);
 
 			if(players.isEmpty()){
+				tracker.getProvider().cancelAsyncCube(this); // cancel the request if any
 				cube.getTickets().remove(this);
 				tracker.removeUnit(this);
 			}
@@ -107,7 +132,11 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
 		}
 	}
 
-	void flush(){
+	// =================================
+	// ======= Interface Methods =======
+	// =================================
+
+	public void flush(){
 		if(cube == null || changeBuffer.getChanges() == 0){
 			return;
 		}
@@ -142,10 +171,6 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
 		changeBuffer.clear();
 	}
 
-	// =================================
-	// ======= Interface Methods =======
-	// =================================
-
 	@Override
 	public int getX() {
 		return pos.getX();
@@ -164,9 +189,10 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket {
 	@Override
 	public void accept(Cube cube) {
 		this.cube = cube;
-		cube.getTickets().add(this);
-
-		sendToPlayers();
+		if(cube != null) {
+			cube.getTickets().add(this);
+			sendToPlayers();
+		}
 	}
 
 	@Override

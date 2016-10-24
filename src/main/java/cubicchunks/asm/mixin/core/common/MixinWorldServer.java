@@ -44,7 +44,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import cubicchunks.lighting.FirstLightProcessor;
 import cubicchunks.server.ChunkGc;
 import cubicchunks.server.CubeProviderServer;
-import cubicchunks.server.PlayerCubeMap;
+import cubicchunks.server.experimental.PlayerCubeTracker;
 import cubicchunks.world.CubeWorldEntitySpawner;
 import cubicchunks.world.CubicSaveHandler;
 import cubicchunks.world.ICubicWorldServer;
@@ -76,7 +76,7 @@ public abstract class MixinWorldServer extends MixinWorld implements ICubicWorld
 		this.chunkProvider = new CubeProviderServer(this,
 			((ICubicWorldProvider) this.provider).createCubeGenerator());
 
-		this.playerChunkMap = new PlayerCubeMap(this);
+		this.playerChunkMap = new PlayerCubeTracker(this);
 		this.chunkGc = new ChunkGc(getCubeCache());
 
 		this.saveHandler = new CubicSaveHandler(this, this.getSaveHandler());
@@ -112,11 +112,11 @@ public abstract class MixinWorldServer extends MixinWorld implements ICubicWorld
 		return this.disableLevelSaving;
 	}
 
-	@Override public PlayerCubeMap getPlayerCubeMap() {
+	@Override public PlayerCubeTracker getPlayerCubeMap() {
 		if (!this.isCubicWorld()) {
 			throw new NotCubicChunksWorldException();
 		}
-		return (PlayerCubeMap) this.playerChunkMap;
+		return (PlayerCubeTracker) this.playerChunkMap;
 	}
 
 	//vanilla methods

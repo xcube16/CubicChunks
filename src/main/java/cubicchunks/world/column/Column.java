@@ -58,6 +58,7 @@ import cubicchunks.util.Coords;
 import cubicchunks.world.ClientHeightMap;
 import cubicchunks.world.ICubeProvider;
 import cubicchunks.world.ICubicWorld;
+import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.IHeightMap;
 import cubicchunks.world.ServerHeightMap;
 import cubicchunks.world.cube.Cube;

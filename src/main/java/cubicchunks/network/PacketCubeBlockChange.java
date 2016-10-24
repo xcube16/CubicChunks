@@ -23,12 +23,6 @@
  */
 package cubicchunks.network;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
-import gnu.trove.TShortCollection;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
@@ -51,7 +45,6 @@ import static net.minecraftforge.fml.common.network.ByteBufUtils.readVarInt;
 @ParametersAreNonnullByDefault
 public class PacketCubeBlockChange implements IMessage {
 
-	int[] heightValues;
 	CubePos cubePos;
 	short[] localAddresses;
 	IBlockState[] blockStates;
@@ -59,32 +52,17 @@ public class PacketCubeBlockChange implements IMessage {
 	public PacketCubeBlockChange() {
 	}
 
-	public PacketCubeBlockChange(Cube cube, TShortCollection localAddresses) {
-		this(cube, localAddresses.toArray());
-	}
-
 	public PacketCubeBlockChange(Cube cube, short[] localAddresses) {
 		this.cubePos = cube.getCoords();
 		this.localAddresses = localAddresses;
 		this.blockStates = new IBlockState[localAddresses.length];
 		int i = localAddresses.length - 1;
-		IntSet xzAddresses = new IntHashSet();
 		for (; i >= 0; i--) {
 			int localAddress = this.localAddresses[i];
 			int x = AddressTools.getLocalX(localAddress);
 			int y = AddressTools.getLocalY(localAddress);
 			int z = AddressTools.getLocalZ(localAddress);
 			this.blockStates[i] = cube.getBlockState(x, y, z);
-			xzAddresses.add(x | z << 4);
-		}
-		// TODO: Don't send height map changes here
-		this.heightValues = new int[xzAddresses.size()];
-		i = 0;
-		for (IntCursor v : xzAddresses) {
-			int height = cube.getColumn().getOpacityIndex().getTopBlockY(v.value & 0xF, v.value >> 4);
-			v.value |= height << 8;
-			heightValues[i] = v.value;
-			i++;
 		}
 	}
 
@@ -100,11 +78,6 @@ public class PacketCubeBlockChange implements IMessage {
 			localAddresses[i] = in.readShort();
 			blockStates[i] = Block.BLOCK_STATE_IDS.getByValue(readVarInt(in, 4));
 		}
-		int numHmapChanges = in.readUnsignedByte();
-		heightValues = new int[numHmapChanges];
-		for (int i = 0; i < numHmapChanges; i++) {
-			heightValues[i] = in.readInt();
-		}
 	}
 
 	@SuppressWarnings("deprecation")
@@ -117,10 +90,6 @@ public class PacketCubeBlockChange implements IMessage {
 		for (int i = 0; i < localAddresses.length; i++) {
 			out.writeShort(localAddresses[i]);
 			ByteBufUtils.writeVarInt(out, Block.BLOCK_STATE_IDS.get(blockStates[i]), 4);
-		}
-		out.writeByte(heightValues.length);
-		for (int v : heightValues) {
-			out.writeInt(v);
 		}
 	}
 

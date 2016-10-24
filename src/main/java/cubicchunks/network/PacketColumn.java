@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.world.column.Column;
+import cubicchunks.world.cube.Cube;
 import io.netty.buffer.ByteBuf;
 import mcp.MethodsReturnNonnullByDefault;
 
@@ -40,22 +41,32 @@ import mcp.MethodsReturnNonnullByDefault;
 @ParametersAreNonnullByDefault
 public class PacketColumn implements IMessage {
 	private ChunkPos chunkPos;
+
+	private boolean hasBiomes;
 	private byte[] data;
 
 	public PacketColumn() {
 	}
 
 	public PacketColumn(Column column) {
+		this(column, true);
+	}
+
+	public PacketColumn(Column column, boolean hasBiomes) {
 		this.chunkPos = column.getChunkCoordIntPair();
-		this.data = new byte[WorldEncoder.getEncodedSize(column)];
+		this.hasBiomes = hasBiomes;
+
+		this.data = new byte[this.getEncodedSize()];
 		PacketBuffer out = new PacketBuffer(WorldEncoder.createByteBufForWrite(this.data));
 
-		WorldEncoder.encodeColumn(out, column);
+		WorldEncoder.encodeColumn(out, column, hasBiomes);
 	}
 
 	@Override
 	public void fromBytes(ByteBuf buf) {
 		this.chunkPos = new ChunkPos(buf.readInt(), buf.readInt());
+		this.hasBiomes = buf.readBoolean();
+
 		this.data = new byte[buf.readInt()];
 		buf.readBytes(this.data);
 	}
@@ -64,6 +75,8 @@ public class PacketColumn implements IMessage {
 	public void toBytes(ByteBuf buf) {
 		buf.writeInt(chunkPos.chunkXPos);
 		buf.writeInt(chunkPos.chunkZPos);
+		buf.writeBoolean(this.hasBiomes);
+
 		buf.writeInt(this.data.length);
 		buf.writeBytes(this.data);
 	}
@@ -74,6 +87,14 @@ public class PacketColumn implements IMessage {
 
 	byte[] getData() {
 		return data;
+	}
+
+	public boolean hasBiomes() {
+		return hasBiomes;
+	}
+
+	private int getEncodedSize() {
+		return Cube.SIZE*Cube.SIZE*4 + (hasBiomes ? Cube.SIZE*Cube.SIZE*4 : 0);
 	}
 
 	public static class Handler extends AbstractClientMessageHandler<PacketColumn> {

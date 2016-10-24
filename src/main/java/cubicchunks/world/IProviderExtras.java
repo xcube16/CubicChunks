@@ -23,9 +23,16 @@
  */
 package cubicchunks.world;
 
+import net.minecraft.util.math.ChunkPos;
+
+import java.util.function.Consumer;
+
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import cubicchunks.server.experimental.ICubeRequest;
+import cubicchunks.util.CubePos;
 import cubicchunks.world.column.Column;
 import cubicchunks.world.cube.Cube;
 import mcp.MethodsReturnNonnullByDefault;
@@ -52,13 +59,54 @@ public interface IProviderExtras {
 	 * @param cubeX the cube's x coordinate
 	 * @param cubeY the cube's y coordinate
 	 * @param cubeZ the cube's z coordinate
-	 * @param req what the requirments are before you get the Cube
+	 * @param req what the requirements are before you get the Cube
 	 *
 	 * @return the Cube or null if no Cube could be found or created
 	 */
 	@Nullable
 	Cube getCube(int cubeX, int cubeY, int cubeZ, Requirement req);
 
+	/**
+	 * Submits a request to get a Column.
+	 * Columns associated with an async Cube request take priority.<br/>
+	 * The callback will be called on the main thread
+	 *
+	 * @param pos the coordinates of the Column
+	 * @param req the requirement level
+	 * @param callback a callback that will be fired when the Column is ready
+	 */
+	void getColumnAsync(@Nonnull ChunkPos pos, @Nonnull Requirement req, @Nonnull Consumer<Column> callback);
+
+	/**
+	 * Submits a request to get a Cube.
+	 * The following priority is not mandatory, but balanced effort it is recommended.
+	 *
+	 * @param pos the coordinates of the Cube
+	 * @param req the requirement level
+	 * @param callback a callback that will be fired when the Cube is ready
+	 */
+	void getCubeAsync(@Nonnull CubePos pos, @Nonnull Requirement req, @Nonnull ICubeRequest callback);
+
+	/**
+	 * Cancels a request for a Column.
+	 * After a call to this method {@code callback} must not be called.
+	 *
+	 * @param callback the callback from a previous getColumnAsync() to cancel
+	 */
+	void cancelAsyncColumn(@Nonnull Consumer<Column> callback);
+
+	/**
+	 * Cancels a request for a Cube.
+	 * After a call to this method {@code callback} must not be called.
+	 *
+	 * @param callback the callback from a previous getCubeAsync() to cancel
+	 */
+	void cancelAsyncCube(@Nonnull ICubeRequest callback);
+
+	/**
+	 * Called as a hint that async Cube requests may need resorting
+	 */
+	void sortAsyncHint();
 
 	/**
 	 * The effort made to retrieve a cube or column. Any further work should not be done, and returning
