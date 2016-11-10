@@ -100,6 +100,7 @@ public class SpawnCubes {
 		}
 
 		private void addTickets(ICubicWorld world) {
+			spawnPoint = world.getSpawnPoint();
 			if (radius < 0) {
 				return; // no spawn cubes
 			}
@@ -108,7 +109,6 @@ public class SpawnCubes {
 
 			// load the cubes around the spawn point
 			CubicChunks.LOGGER.info("Loading cubes for spawn...");
-			spawnPoint = world.getSpawnPoint();
 			int spawnCubeX = Coords.blockToCube(spawnPoint.getX());
 			int spawnCubeY = Coords.blockToCube(spawnPoint.getY());
 			int spawnCubeZ = Coords.blockToCube(spawnPoint.getZ());

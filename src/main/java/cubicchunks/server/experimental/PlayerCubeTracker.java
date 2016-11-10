@@ -51,12 +51,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class keeps track of what parts of the world can be seen by players,
+ * and sends updates to players accordingly
+ * Compatibility for PlayerChunkMap
+ */
 public class PlayerCubeTracker extends PlayerChunkMap {
 
-	private XYZMap<TrackerUnit> unitsMap = new XYZMap<>(0.75F, 4000);
-	private XZMap<TrackerUnit2D> unit2DsMap = new XZMap<>(0.75F, 500);
+	private XYZMap<CubeTracker> cubeTrackers = new XYZMap<>(0.75F, 4000);
+	private XZMap<ColumnTracker> columnTrackers = new XZMap<>(0.75F, 500);
 
-	// A list of all units to be flushed on the next tick
+	// A list of all trackers to be flushed on the next tick
 	private List<Flushable> flushQueue = Lists.newArrayList();
 
 	private Map<EntityPlayerMP, IViewFormula> formulas = new HashMap<>();
@@ -69,13 +74,13 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	}
 
 	/**
-	 * Marks a position's height so it will be re-sent to clients
+	 * Marks a position's height to be re-sent to clients
 	 *
 	 * @param x the x coordinate in block coordinates
 	 * @param z the z coordinate in block coordinates
 	 */
 	public void markHeightForUpdate(int x, int z) {
-		TrackerUnit2D unit = this.getUnit2D(
+		ColumnTracker unit = this.getColumnTracker(
 			Coords.blockToCube(x),
 			Coords.blockToCube(z));
 
@@ -86,35 +91,67 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 		}
 	}
 
+	/**
+	 * @return the provider used to get Cubes and Columns
+	 */
 	IProviderExtras getProvider() {
 		return provider;
 	}
 
 	@Nullable
-	TrackerUnit getUnit(int cubeX, int cubeY, int cubeZ) {
-		return unitsMap.get(cubeX, cubeY, cubeZ);
+	CubeTracker getCubeTracker(int cubeX, int cubeY, int cubeZ) {
+		return cubeTrackers.get(cubeX, cubeY, cubeZ);
 	}
 
-	void needsFlush(Flushable unit) {
-		flushQueue.add(unit);
+	/**
+	 * Queue's a Flushable (Cube or Column tracker) to be flushed
+	 */
+	void needsFlush(Flushable tracker) {
+		flushQueue.add(tracker);
 	}
 
-	void removeUnit(TrackerUnit unit) {
-		unitsMap.remove(unit);
-		flushQueue.remove(unit);
+	void removeCubeTracker(CubeTracker tracker) {
+		cubeTrackers.remove(tracker);
+		flushQueue.remove(tracker);
 	}
 
-	void removeUnit2D(TrackerUnit2D unit) {
-		unit2DsMap.remove(unit);
-		flushQueue.remove(unit);
+	void removeColumnTracker(ColumnTracker tracker) {
+		columnTrackers.remove(tracker);
+		flushQueue.remove(tracker);
 	}
 
+	/**
+	 * Get a player's Requirement Cube/Column level
+	 * (some spectators cant generate Cubes so this is useful for that and more)
+	 *
+	 * @param player the player
+	 * @return the requirement level to be used when getting Cubes/Columns
+	 */
 	IProviderExtras.Requirement getPlayerReq(EntityPlayerMP player) {
 		if(player.hasCapability(DebugCapability.CAPABILITY, null)){
 			return player.getCapability(DebugCapability.CAPABILITY, null).getRequirement();
 		} else {
 			return IProviderExtras.Requirement.LIGHT;
 		}
+	}
+
+	/**
+	 * Checks the Requirement level for all Cubes that {@code player} can see
+	 * This should be called when a player's Requirement changes
+	 *
+	 * @param player the player to refresh
+	 */
+	public void refreshPlayerReq(EntityPlayerMP player) {
+		IViewFormula formula = formulas.get(player);
+		if (formula == null) {
+			return;
+		}
+
+		IProviderExtras.Requirement req = getPlayerReq(player);
+		formula.computePositions((x, y, z) -> {
+			getColumnTracker(x, z).checkRequirement(req);
+			getCubeTracker(x, y, z).checkRequirement(req);
+		});
 	}
 
 	// =================================
@@ -125,10 +162,9 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 * Does what ever needs to be done on world tick
 	 * This method is called by WorldServer.tick() just after updating blocks
 	 */
-	@Override
-	public void tick() {
-		for (Flushable unit : this.flushQueue) {
-			unit.flush();
+	@Override public void tick() {
+		for (Flushable tracker : this.flushQueue) {
+			tracker.flush();
 		}
 		this.flushQueue.clear();
 	}
@@ -138,9 +174,8 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 *
 	 * @param pos The position of the block that changed
 	 */
-	@Override
-	public void markBlockForUpdate(BlockPos pos) {
-		TrackerUnit unit = this.getUnit(
+	@Override public void markBlockForUpdate(BlockPos pos) {
+		CubeTracker unit = this.getCubeTracker(
 			Coords.blockToCube(pos.getX()),
 			Coords.blockToCube(pos.getY()),
 			Coords.blockToCube(pos.getZ()));
@@ -155,12 +190,11 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 *
 	 * @param player the player to add
 	 */
-	@Override
-	public void addPlayer(EntityPlayerMP player) {
+	@Override public void addPlayer(EntityPlayerMP player) {
 		IViewFormula formula = new VanillaViewFormula(player);
 		formulas.put(player, formula);
 
-		formula.computePositions((x, y, z) -> addPlayerToUnit(player, x, y, z));
+		formula.computePositions((x, y, z) -> addPlayerToTracker(player, x, y, z));
 		//TODO: provide re-sort hint to async cube getting system
 	}
 
@@ -169,11 +203,10 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 *
 	 * @param player the player being removed
 	 */
-	@Override
-	public void removePlayer(EntityPlayerMP player) {
-		// getUnit() should not return null, if it does, its an inconsistency and should crash hard!
+	@Override public void removePlayer(EntityPlayerMP player) {
+		// getCubeTracker() should not return null, if it does, its an inconsistency and should crash hard!
 		formulas.remove(player).computePositions((x, y, z) ->
-			removePlayerFromUnit(player, x, y, z));
+			removePlayerFromTracker(player, x, y, z));
 		//TODO: provide re-sort hint to async cube getting system (maybe its not important here?)
 	}
 
@@ -183,17 +216,13 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 *
 	 * @param player the player that moved
 	 */
-	@Override
-	public void updateMovingPlayer(EntityPlayerMP player) {
-		IViewFormula oldView = formulas.get(player);
-		IViewFormula newView = oldView.next(player);
+	@Override public void updateMovingPlayer(EntityPlayerMP player) {
+		IViewFormula newView = formulas.get(player).next(player);
 		if(newView == null){
 			return;
 		}
 
-		updateView(player, oldView, newView);
-
-		formulas.put(player, newView);
+		updateView(player, newView);
 		//TODO: provide re-sort hint to async cube getting system
 	}
 
@@ -206,10 +235,9 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 * @param columnZ the Z coord of the Column
 	 * @return weather or not {@code player} can see the Column
 	 */
-	@Override
-	public boolean isPlayerWatchingChunk(EntityPlayerMP player, int columnX, int columnZ) {
-		TrackerUnit2D unit = getUnit2D(columnX, columnZ);
-		return unit != null && unit.isPlayerWatching(player);
+	@Override public boolean isPlayerWatchingChunk(EntityPlayerMP player, int columnX, int columnZ) {
+		ColumnTracker tracker = getColumnTracker(columnX, columnZ);
+		return tracker != null && tracker.isPlayerWatching(player);
 	}
 
 	/**
@@ -217,20 +245,15 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 *
 	 * @param radius the new view distance
 	 */
-	@Override
-	public void setPlayerViewRadius(int radius) {
+	@Override public void setPlayerViewRadius(int radius) {
 		if(formulas == null) {
 			return; // PlayerChunkMap's constructor calls this method, so this is a work-a-round
 		}
 
 		for(Map.Entry<EntityPlayerMP, IViewFormula> entry : formulas.entrySet()){
 			EntityPlayerMP player = entry.getKey();
-			IViewFormula oldView = entry.getValue();
-			IViewFormula newView = new VanillaViewFormula(radius, player);
 
-			updateView(player, oldView, newView);
-
-			entry.setValue(newView);
+			updateView(player, new VanillaViewFormula(radius, player));
 		}
 		//TODO: provide re-sort hint to async cube getting system (maybe its not important here?)
 	}
@@ -254,33 +277,19 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 		return false;
 	}
 
-	/**
-	 * Used only in WorldEntitySpawner, and that is not used in Cubic Chunks!
-	 * Implementations can just return null
-	 *
-	 * @param columnX the X coord of the Column
-	 * @param columnZ the Z coord of the Column
-	 * @return Garbage :P
-	 */
 	@Nullable
 	@Override
 	@Deprecated
 	public PlayerChunkMapEntry getEntry(int columnX, int columnZ) {
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
-	/**
-	 * just throw an unsupported exception
-	 */
 	@Override
 	@Deprecated
 	public void entryChanged(PlayerChunkMapEntry entry) {
 		throw new UnsupportedOperationException();
 	}
 
-	/**
-	 * just throw an unsupported exception
-	 */
 	@Override
 	@Deprecated
 	public void removeEntry(PlayerChunkMapEntry entry) {
@@ -320,49 +329,62 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	// ===============================
 
 	@Nullable
-	private TrackerUnit2D getUnit2D(int columnX, int columnZ) {
-		return unit2DsMap.get(columnX, columnZ);
+	private ColumnTracker getColumnTracker(int columnX, int columnZ) {
+		return columnTrackers.get(columnX, columnZ);
 	}
 
-	private void addPlayerToUnit(EntityPlayerMP player, int cubeX, int cubeY, int cubeZ) {
-		TrackerUnit2D unit2d = getUnit2D(cubeX, cubeZ);
-		if(unit2d == null) {
-			unit2d = new TrackerUnit2D(this, new ChunkPos(cubeX, cubeZ));
-			unit2DsMap.put(unit2d);
+	/**
+	 * Adds a player to a CubeTracker at the given location
+	 * (players are added to ColumnTrackers automatically)
+	 *
+	 * @param player the player that should see the Cube
+	 * @param cubeX the x coordinate of the Cube
+	 * @param cubeY the y coordinate of the Cube
+	 * @param cubeZ the z coordinate of the Cube
+	 */
+	private void addPlayerToTracker(EntityPlayerMP player, int cubeX, int cubeY, int cubeZ) {
+		ColumnTracker columnTracker = getColumnTracker(cubeX, cubeZ);
+		if(columnTracker == null) {
+			columnTracker = new ColumnTracker(this, new ChunkPos(cubeX, cubeZ));
+			columnTrackers.put(columnTracker);
 		}
-		unit2d.addUnitToPlayer(player, cubeY);
+		columnTracker.addCubeToPlayer(player, cubeY);
 
-		TrackerUnit unit = getUnit(cubeX, cubeY, cubeZ);
-		if(unit == null){
-			unit = new TrackerUnit(this, player, new CubePos(cubeX, cubeY, cubeZ));
-			unitsMap.put(unit);
+		CubeTracker cubeTracker = getCubeTracker(cubeX, cubeY, cubeZ);
+		if(cubeTracker == null){
+			cubeTracker = new CubeTracker(this, player, new CubePos(cubeX, cubeY, cubeZ));
+			cubeTrackers.put(cubeTracker);
 		} else {
-			unit.addPlayer(player);
+			cubeTracker.addPlayer(player);
 		}
 	}
 
 	/**
-	 * Just a helper method so other parts dont need to bother with Column trackers
+	 * Just a helper method so other parts don't need to bother with Column trackers
 	 */
-	private void removePlayerFromUnit(EntityPlayerMP player, int cubeX, int cubeY, int cubeZ) {
-		TrackerUnit unit = getUnit(cubeX, cubeY, cubeZ);
-		getUnit2D(cubeX, cubeZ).removeUnitFromPlayer(player, unit);
-		unit.removePlayer(player);
+	private void removePlayerFromTracker(EntityPlayerMP player, int cubeX, int cubeY, int cubeZ) {
+		CubeTracker tracker = getCubeTracker(cubeX, cubeY, cubeZ);
+		getColumnTracker(cubeX, cubeZ).removeCubeFromPlayer(player, tracker.getY());
+		tracker.removePlayer(player);
 	}
 
-	private void updateView(EntityPlayerMP player, IViewFormula oldView, IViewFormula newView) {
+	private void updateView(EntityPlayerMP player,IViewFormula newView) {
+		IViewFormula oldView = formulas.get(player);
+
 		// find cubes that don't show up on the newView (droped Cubes)
 		oldView.computePositions((x, y, z) -> {
 			if(!newView.contains(x, y, z)) {
-				removePlayerFromUnit(player, x, y, z);
+				removePlayerFromTracker(player, x, y, z);
 			}
 		});
 
 		// find the cubes that don't show up on aPlayerView (new Cubes)
 		newView.computePositions((x, y, z) -> {
 			if(!oldView.contains(x, y, z)){
-				addPlayerToUnit(player, x, y, z);
+				addPlayerToTracker(player, x, y, z);
 			}
 		});
+
+		formulas.put(player, newView);
 	}
 }

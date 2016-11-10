@@ -23,6 +23,7 @@
  */
 package cubicchunks.debug;
 
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.util.EnumFacing;
@@ -37,6 +38,7 @@ import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 
 import cubicchunks.CubicChunks;
+import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.IProviderExtras;
 
 public class DebugCapability implements Capability.IStorage<DebugCapability.Attachment>, Callable<DebugCapability.Attachment> {
@@ -73,8 +75,10 @@ public class DebugCapability implements Capability.IStorage<DebugCapability.Atta
 			requirement = IProviderExtras.Requirement.LIGHT;
 		}
 
-		public void setRequirement(IProviderExtras.Requirement req) {
+		public void setRequirement(EntityPlayerMP target, IProviderExtras.Requirement req) {
 			requirement = req;
+			((ICubicWorldServer)target.getServerWorld())
+				.getPlayerCubeMap().refreshPlayerReq(target);
 		}
 
 		public IProviderExtras.Requirement getRequirement() {

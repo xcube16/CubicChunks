@@ -30,7 +30,7 @@ public interface ICubeRequest {
 
 	void accept(Cube cube);
 
-	default float getPriroity() {
+	default float getPriority() {
 		return 0.0f;
 	}
 }

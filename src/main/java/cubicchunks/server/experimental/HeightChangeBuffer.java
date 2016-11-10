@@ -1,6 +1,5 @@
 package cubicchunks.server.experimental;
 
-import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.ForgeModContainer;
 
 import java.util.Arrays;

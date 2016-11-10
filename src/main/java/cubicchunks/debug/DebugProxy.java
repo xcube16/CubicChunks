@@ -24,6 +24,7 @@
 package cubicchunks.debug;
 
 import net.minecraft.command.ServerCommandManager;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
@@ -56,7 +57,9 @@ public class DebugProxy {
 	}
 
 	@SubscribeEvent
-	public void capabilityThingy(AttachCapabilitiesEvent<EntityPlayerMP> event) {
-		event.addCapability(DebugCapability.KEY, new DebugCapability.Attachment());
+	public void capabilityThingy(AttachCapabilitiesEvent<Entity> event) {
+		if (event.getObject() instanceof EntityPlayerMP) {
+			event.addCapability(DebugCapability.KEY, new DebugCapability.Attachment());
+		}
 	}
 }

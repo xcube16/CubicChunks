@@ -60,13 +60,16 @@ public class DebugCommand extends CommandBase {
 		if (!(sender instanceof EntityPlayerMP)) {
 			throw new WrongUsageException("Only players can use this command");
 		}
-		if (args.length < 1) {
-			((EntityPlayerMP) sender).getCapability(DebugCapability.CAPABILITY, null).setRequirement(
+		EntityPlayerMP player = (EntityPlayerMP) sender;
+		if (args.length >= 1) {
+			player.getCapability(DebugCapability.CAPABILITY, null).setRequirement(
+				player,
 				IProviderExtras.Requirement.valueOf(args[0])
 			);
-			notifyCommandListener(sender, this, "Cube requirement set to {}", args[0]);
+			notifyCommandListener(sender, this, "Cube requirement set to %s", args[0]);
 		} else {
-			((EntityPlayerMP) sender).getCapability(DebugCapability.CAPABILITY, null).setRequirement(
+			player.getCapability(DebugCapability.CAPABILITY, null).setRequirement(
+				player,
 				IProviderExtras.Requirement.LIGHT
 			);
 			notifyCommandListener(sender, this, "Cube requirement reset");

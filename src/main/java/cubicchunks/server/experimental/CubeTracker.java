@@ -51,8 +51,11 @@ import cubicchunks.world.cube.Cube;
 
 /**
  * Cubic Chunks version of PlayerChunkMapEntry
+ *
+ * This class tracks a cube, and synchronizes changes to all players watching the Cube
+ * (load/unload, block changes)
  */
-public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flushable {
+public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flushable {
 
 	private PlayerCubeTracker tracker;
 
@@ -66,23 +69,56 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 	// the players that can see this Cube
 	private List<EntityPlayerMP> players = Lists.newArrayListWithExpectedSize(1);
 
-	TrackerUnit(PlayerCubeTracker tracker, EntityPlayerMP player, CubePos pos){
+	CubeTracker(PlayerCubeTracker tracker, EntityPlayerMP player, CubePos pos) {
 		this.tracker = tracker;
 		this.pos = pos;
 
 		addPlayer(player);
 	}
 
-	void addPlayer(EntityPlayerMP player){
+	/**
+	 * Adds a player to this CubeTracker
+	 * The player will now be able to see the Cube
+	 *
+	 * @param player the player that should see the Cube
+	 */
+	void addPlayer(EntityPlayerMP player) {
 		if (this.players.contains(player)) {
 			throw new IllegalStateException("Failed to add player. " + player + " already is in cube at " + pos);
 		}
 
 		players.add(player);
 
-		if(checkRequirement(tracker.getPlayerReq(player))){
+		if (checkRequirement(tracker.getPlayerReq(player))) {
 			// cube is already ready, so send it
 			PacketDispatcher.sendTo(new PacketCube(this.cube), player);
+		}
+	}
+
+	/**
+	 * Removes a player from this CubeTracker
+	 * The player will no longer be able to see the Cube
+	 *
+	 * @param player the player that should not see the Cube
+	 */
+	void removePlayer(EntityPlayerMP player){
+		if (!players.remove(player)) {
+			throw new IllegalStateException("Failed to remove player. " + player + " is not in cube at " + pos);
+		}
+
+		if (cube == null) {
+			if(players.isEmpty()){
+				tracker.getProvider().cancelAsyncCube(this); // cancel the request if any
+				tracker.removeCubeTracker(this);
+			}
+		} else {
+			PacketDispatcher.sendTo(new PacketUnloadCube(pos), player);
+
+			if (players.isEmpty()) {
+				tracker.getProvider().cancelAsyncCube(this); // cancel the request if any
+				cube.getTickets().remove(this);
+				tracker.removeCubeTracker(this);
+			}
 		}
 	}
 
@@ -92,8 +128,8 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 	 * @param newReq the Requirement
 	 * @return true if the cube immediately meets the Requirement, and is not null
 	 */
-	boolean checkRequirement(IProviderExtras.Requirement newReq){
-		if(requestLevel == null || requestLevel.compareTo(newReq) < 0){
+	boolean checkRequirement(IProviderExtras.Requirement newReq) {
+		if (requestLevel == null || requestLevel.compareTo(newReq) < 0) {
 			requestLevel = newReq;
 			tracker.getProvider().getCubeAsync(pos, newReq, this);
 			return false;
@@ -101,27 +137,11 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 		return cube != null;
 	}
 
-	void removePlayer(EntityPlayerMP player){
-		if(!players.remove(player)){
-			throw new IllegalStateException("Failed to remove player. " + player + " is not in cube at " + pos);
-		}
-
-		if(cube == null){
-			if(players.isEmpty()){
-				tracker.getProvider().cancelAsyncCube(this); // cancel the request if any
-				tracker.removeUnit(this);
-			}
-		}else{
-			PacketDispatcher.sendTo(new PacketUnloadCube(pos), player);
-
-			if(players.isEmpty()){
-				tracker.getProvider().cancelAsyncCube(this); // cancel the request if any
-				cube.getTickets().remove(this);
-				tracker.removeUnit(this);
-			}
-		}
-	}
-
+	/**
+	 * Queue's a block change to be sent to players that are viewing the Cube
+	 *
+	 * @param pos the position of the block
+	 */
 	void blockChanged(BlockPos pos) {
 		if(cube != null){
 			if (this.changeBuffer.getChanges() == 0) {
@@ -136,12 +156,15 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 	// ======= Interface Methods =======
 	// =================================
 
-	public void flush(){
-		if(cube == null || changeBuffer.getChanges() == 0){
+	/**
+	 * Sends all queued up changes to the players that are watching the Cube
+	 */
+	@Override public void flush() {
+		if (cube == null || changeBuffer.getChanges() == 0) {
 			return;
 		}
 
-		if (changeBuffer.getChanges() == 1) {
+		if (changeBuffer.getChanges() == 1) { // only one change
 			// get the only block change in the buffer
 			BlockPos blockpos = cube.localAddressToBlockPos(changeBuffer.getBlock(0));
 
@@ -151,7 +174,7 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 			if (state.getBlock().hasTileEntity(state)) {
 				this.sendBlockEntity(this.tracker.getWorldServer().getTileEntity(blockpos));
 			}
-		} else if(changeBuffer.getChanges() == Integer.MAX_VALUE) {
+		} else if(changeBuffer.getChanges() == Integer.MAX_VALUE) { // many changes... but not too many
 			List<TileEntity> newTiles = new ArrayList<>();
 			for (int i = 0;i < changeBuffer.getTiles();i++) {
 				BlockPos blockpos = cube.localAddressToBlockPos(changeBuffer.getTile(i));
@@ -159,7 +182,7 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 			}
 
 			sendPacket(new PacketCube(cube, newTiles));
-		}else{
+		} else { // OMG! Lots of blocks changed! Resend the whole Cube!
 			sendPacket(new PacketCubeBlockChange(cube, changeBuffer.getChangedBlocks()));
 
 			for (int i = 0;i < changeBuffer.getTiles();i++) {
@@ -171,48 +194,52 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 		changeBuffer.clear();
 	}
 
-	@Override
-	public int getX() {
+	@Override public int getX() {
 		return pos.getX();
 	}
 
-	@Override
-	public int getY() {
+	@Override public int getY() {
 		return pos.getY();
 	}
 
-	@Override
-	public int getZ() {
+	@Override public int getZ() {
 		return pos.getZ();
 	}
 
-	@Override
-	public void accept(Cube cube) {
+	/**
+	 * Called by the async getter when the Cube is ready
+	 */
+	@Override public void accept(Cube cube) {
 		this.cube = cube;
-		if(cube != null) {
+		if (cube != null) {
 			cube.getTickets().add(this);
 			sendToPlayers();
 		}
 	}
 
-	@Override
-	public float getPriroity() {
+	/**
+	 * Gets the priority of the Cube
+	 * Cubes closer to a player will get higher priority than cubes far away
+	 */
+	@Override public float getPriority() {
 		float lowest = 1024.0f;
-		for(EntityPlayerMP player : players){
+		for (EntityPlayerMP player : players) {
 			int dx = player.chunkCoordX - getX();
 			int dy = player.chunkCoordY - getY();
 			int dz = player.chunkCoordZ - getZ();
 
 			float priority = dx*dx + dy*dy + dz*dz;
-			if(priority < lowest){
+			if (priority < lowest) {
 				lowest = priority;
 			}
 		}
 		return lowest;
 	}
 
-	@Override
-	public boolean shouldTick() {
+	/**
+	 * @return true if the Cube should be ticked
+	 */
+	@Override public boolean shouldTick() {
 		return true;
 	}
 
@@ -236,7 +263,7 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 	}
 
 	/**
-	 * Sends an {@link IMessage} to all players viewing this cube
+	 * Sends an {@link IMessage} to all players watching the Cube
 	 *
 	 * @param msg the {@link IMessage} to send
 	 */
@@ -247,7 +274,7 @@ public class TrackerUnit implements XYZAddressable, ICubeRequest, ITicket, Flush
 	}
 
 	/**
-	 * Sends a packet to all players viewing this cube
+	 * Sends a packet to all players watching the Cube
 	 *
 	 * @param packet the packet to send
 	 */

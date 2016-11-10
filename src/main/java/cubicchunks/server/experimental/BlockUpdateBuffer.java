@@ -77,10 +77,6 @@ public class BlockUpdateBuffer {
 		return Arrays.copyOf(changedBlocks, changes);
 	}
 
-	public short[] getChangedTiles(){
-		return changedTiles.toArray();
-	}
-
 	/**
 	 * Gets the number of changes or Integer.MAX_VALUE if there where too many changes to track
 	 *
