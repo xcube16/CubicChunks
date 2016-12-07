@@ -36,11 +36,15 @@ import net.minecraftforge.common.capabilities.ICapabilitySerializable;
 import java.util.concurrent.Callable;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.CubicChunks;
 import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.IProviderExtras;
+import mcp.MethodsReturnNonnullByDefault;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class DebugCapability implements Capability.IStorage<DebugCapability.Attachment>, Callable<DebugCapability.Attachment> {
 
 	public static final ResourceLocation KEY = new ResourceLocation(CubicChunks.MODID, "debug");
@@ -89,6 +93,7 @@ public class DebugCapability implements Capability.IStorage<DebugCapability.Atta
 			return capability == CAPABILITY;
 		}
 
+		@Nullable
 		@Override public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing facing) {
 			return capability == CAPABILITY ? (T)this : null;
 		}

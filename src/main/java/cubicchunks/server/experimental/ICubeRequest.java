@@ -23,8 +23,13 @@
  */
 package cubicchunks.server.experimental;
 
-import cubicchunks.world.cube.Cube;
+import javax.annotation.ParametersAreNonnullByDefault;
 
+import cubicchunks.world.cube.Cube;
+import mcp.MethodsReturnNonnullByDefault;
+
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 @FunctionalInterface
 public interface ICubeRequest {
 

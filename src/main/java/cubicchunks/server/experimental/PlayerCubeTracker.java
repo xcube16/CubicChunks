@@ -26,6 +26,23 @@ package cubicchunks.server.experimental;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.server.management.PlayerChunkMap;
+import net.minecraft.server.management.PlayerChunkMapEntry;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.chunk.Chunk;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import cubicchunks.debug.DebugCapability;
 import cubicchunks.server.CubeProviderServer;
 import cubicchunks.util.Coords;
@@ -36,26 +53,14 @@ import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.IProviderExtras;
 import cubicchunks.world.column.Column;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.management.PlayerChunkMap;
-import net.minecraft.server.management.PlayerChunkMapEntry;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
-
-import javax.annotation.Nullable;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 /**
  * This class keeps track of what parts of the world can be seen by players,
  * and sends updates to players accordingly
  * Compatibility for PlayerChunkMap
  */
+@ParametersAreNonnullByDefault
+//@MethodsReturnNonnullByDefault vary annoying for getCubeTracker() and getColumnTacker()
+// as there nullability depends on the args
 public class PlayerCubeTracker extends PlayerChunkMap {
 
 	private XYZMap<CubeTracker> cubeTrackers = new XYZMap<>(0.75F, 4000);
@@ -94,11 +99,11 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	/**
 	 * @return the provider used to get Cubes and Columns
 	 */
+	@Nonnull
 	IProviderExtras getProvider() {
 		return provider;
 	}
 
-	@Nullable
 	CubeTracker getCubeTracker(int cubeX, int cubeY, int cubeZ) {
 		return cubeTrackers.get(cubeX, cubeY, cubeZ);
 	}
@@ -127,6 +132,7 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 * @param player the player
 	 * @return the requirement level to be used when getting Cubes/Columns
 	 */
+	@Nonnull
 	IProviderExtras.Requirement getPlayerReq(EntityPlayerMP player) {
 		if(player.hasCapability(DebugCapability.CAPABILITY, null)){
 			return player.getCapability(DebugCapability.CAPABILITY, null).getRequirement();
@@ -308,6 +314,7 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 */
 	@Override
 	@Deprecated // just a hook so we can tell vanilla what Columns to tick
+	@Nonnull
 	public Iterator<Chunk> getChunkIterator() {
 		// GIVE TICKET SYSTEM FULL CONTROL
 		Iterator<Chunk> chunkIt = this.provider.getLoadedChunks().iterator();
@@ -328,7 +335,6 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	// ======= Private Methods =======
 	// ===============================
 
-	@Nullable
 	private ColumnTracker getColumnTracker(int columnX, int columnZ) {
 		return columnTrackers.get(columnX, columnZ);
 	}

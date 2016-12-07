@@ -34,6 +34,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import cubicchunks.network.PacketColumn;
 import cubicchunks.network.PacketDispatcher;
 import cubicchunks.network.PacketHeightChanges;
@@ -41,11 +44,14 @@ import cubicchunks.network.PacketUnloadColumn;
 import cubicchunks.util.XZAddressable;
 import cubicchunks.world.IProviderExtras;
 import cubicchunks.world.column.Column;
+import mcp.MethodsReturnNonnullByDefault;
 
 /**
  * This class tracks a Column, and synchronizes changes to all players watching the Column
  * (load/unload, height map changes)
  */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable {
 
 	private PlayerCubeTracker tracker;
@@ -153,7 +159,7 @@ public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable
 	/**
 	 * Called by the async getter when the Column is ready
 	 */
-	@Override public void accept(Column column) {
+	@Override public void accept(@Nullable Column column) {
 		this.column = column;
 
 		if (column != null) {
@@ -221,11 +227,11 @@ public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable
 
 		EntityPlayerMP player;
 
-		public PlayerColumnView(EntityPlayerMP player) {
+		private PlayerColumnView(EntityPlayerMP player) {
 			this.player = player;
 		}
 
-		public void addCube(int cubeY) {
+		private void addCube(int cubeY) {
 			if(maxCubeY == Integer.MIN_VALUE){
 				maxCubeY = minCubeY = cubeY;
 			}else if(cubeY < minCubeY){
@@ -235,7 +241,7 @@ public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable
 			}
 		}
 
-		public void removeCube(int cubeY) {
+		private void removeCube(int cubeY) {
 			if (maxCubeY == cubeY) {
 				do {
 					maxCubeY--;

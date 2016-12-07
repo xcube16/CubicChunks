@@ -23,6 +23,12 @@
  */
 package cubicchunks.server.experimental;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
+import mcp.MethodsReturnNonnullByDefault;
+
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public interface Flushable {
 
 	void flush();

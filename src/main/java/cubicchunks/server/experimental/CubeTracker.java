@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.network.PacketCube;
 import cubicchunks.network.PacketCubeBlockChange;
@@ -48,6 +49,7 @@ import cubicchunks.util.XYZAddressable;
 import cubicchunks.util.ticket.ITicket;
 import cubicchunks.world.IProviderExtras;
 import cubicchunks.world.cube.Cube;
+import mcp.MethodsReturnNonnullByDefault;
 
 /**
  * Cubic Chunks version of PlayerChunkMapEntry
@@ -55,6 +57,8 @@ import cubicchunks.world.cube.Cube;
  * This class tracks a cube, and synchronizes changes to all players watching the Cube
  * (load/unload, block changes)
  */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flushable {
 
 	private PlayerCubeTracker tracker;
@@ -209,7 +213,7 @@ public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flush
 	/**
 	 * Called by the async getter when the Cube is ready
 	 */
-	@Override public void accept(Cube cube) {
+	@Override public void accept(@Nullable Cube cube) {
 		this.cube = cube;
 		if (cube != null) {
 			cube.getTickets().add(this);

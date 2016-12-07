@@ -30,8 +30,13 @@ import net.minecraftforge.common.ForgeModContainer;
 
 import java.util.Arrays;
 
-import cubicchunks.util.AddressTools;
+import javax.annotation.ParametersAreNonnullByDefault;
 
+import cubicchunks.util.AddressTools;
+import mcp.MethodsReturnNonnullByDefault;
+
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class BlockUpdateBuffer {
 
 	private short[] changedBlocks = new short[ForgeModContainer.clumpingThreshold / 2];

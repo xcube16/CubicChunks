@@ -4,8 +4,13 @@ import net.minecraftforge.common.ForgeModContainer;
 
 import java.util.Arrays;
 
-import cubicchunks.util.AddressTools;
+import javax.annotation.ParametersAreNonnullByDefault;
 
+import cubicchunks.util.AddressTools;
+import mcp.MethodsReturnNonnullByDefault;
+
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class HeightChangeBuffer {
 
 	private byte[] changedHeights = new byte[ForgeModContainer.clumpingThreshold / 8];

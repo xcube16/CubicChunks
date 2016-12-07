@@ -26,10 +26,14 @@ package cubicchunks.server.experimental;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.util.Coords;
 import cubicchunks.util.XYZFunction;
+import mcp.MethodsReturnNonnullByDefault;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class VanillaViewFormula implements IViewFormula {
 
 	private final int posX;

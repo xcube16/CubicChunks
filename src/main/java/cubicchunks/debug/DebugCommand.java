@@ -35,9 +35,13 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.world.IProviderExtras;
+import mcp.MethodsReturnNonnullByDefault;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class DebugCommand extends CommandBase {
 
 	@Override

@@ -26,13 +26,17 @@ package cubicchunks.server.experimental;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.util.XYZFunction;
+import mcp.MethodsReturnNonnullByDefault;
 
 /**
  * A formula that can be used to calculate the area visible for a player
  * This must be immutable, next is used to advance the area to a new location
  */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public interface IViewFormula {
 
 	/**

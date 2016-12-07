@@ -51,11 +51,14 @@ public class DebugProxy {
 		itemRelightSkyBlock.setCreativeTab(CUBIC_CHUNKS_DEBUG_TAB);
 	}
 
-	public void initServer(MinecraftServer server) {
+	void initServer(MinecraftServer server) {
 		ServerCommandManager commands = (ServerCommandManager) server.getCommandManager();
 		commands.registerCommand(new DebugCommand());
 	}
 
+	/**
+	 * Adds the cubic debug capability to a player
+	 */
 	@SubscribeEvent
 	public void capabilityThingy(AttachCapabilitiesEvent<Entity> event) {
 		if (event.getObject() instanceof EntityPlayerMP) {
