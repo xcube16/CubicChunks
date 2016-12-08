@@ -1,4 +1,4 @@
-package cubicchunks.server.experimental;
+package cubicchunks.server.visibility;
 
 import net.minecraftforge.common.ForgeModContainer;
 

@@ -23,24 +23,45 @@
  */
 package cubicchunks.visibility;
 
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.entity.player.EntityPlayerMP;
 
-import java.util.Set;
-import java.util.function.Consumer;
-
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import cubicchunks.util.CubePos;
+import cubicchunks.util.XYZFunction;
 import mcp.MethodsReturnNonnullByDefault;
 
+/**
+ * A formula that can be used to calculate the area visible for a player
+ * This must be immutable, next is used to advance the area to a new location
+ */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public abstract class CubeSelector {
-	public abstract void forAllVisibleFrom(CubePos cubePos, int horizontalViewDistance, int verticalViewDistance, Consumer<CubePos> consumer);
+public interface IViewFormula {
 
-	public abstract void findChanged(CubePos oldAddress, CubePos newAddress, int horizontalViewDistance, int verticalViewDistance,
-	                                 Set<CubePos> cubesToRemove, Set<CubePos> cubesToLoad, Set<ChunkPos> columnsToRemove, Set<ChunkPos> columnsToLoad);
+	/**
+	 * Capture another state snapshot into a new IViewFormula if there was significant change
+	 *
+	 * @param player the player to capture the new state form
+	 * @return A new StateSnapshot or null
+	 */
+	@Nullable
+	IViewFormula next(EntityPlayerMP player);
 
-	public abstract void findAllUnloadedOnViewDistanceDecrease(CubePos playerAddress, int oldHorizontalViewDistance, int newHorizontalViewDistance,
-	                                                           int oldVerticalViewDistance, int newVerticalViewDistance, Set<CubePos> cubesToUnload, Set<ChunkPos> columnsToUnload);
+	/**
+	 * Compute all the points within the area
+	 *
+	 * @param output the computed points should be passed to this function, with no duplicates
+	 */
+	void computePositions(XYZFunction output);
+
+	/**
+	 * Checks to see if a point is contained within the area at {@code state}
+	 *
+	 * @param x the x coordinate
+	 * @param y the y coordinate
+	 * @param z the z coordinate
+	 * @return true if the point is within the area
+	 */
+	boolean contains(int x, int y, int z);
 }

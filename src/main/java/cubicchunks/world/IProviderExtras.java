@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import cubicchunks.server.experimental.ICubeRequest;
+import cubicchunks.server.chunkio.async.ICubeRequest;
 import cubicchunks.util.CubePos;
 import cubicchunks.world.column.Column;
 import cubicchunks.world.cube.Cube;

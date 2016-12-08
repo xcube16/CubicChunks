@@ -21,7 +21,7 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package cubicchunks.server.experimental;
+package cubicchunks.server.visibility;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
@@ -47,8 +47,11 @@ import cubicchunks.debug.DebugCapability;
 import cubicchunks.server.CubeProviderServer;
 import cubicchunks.util.Coords;
 import cubicchunks.util.CubePos;
+import cubicchunks.util.Flushable;
 import cubicchunks.util.XYZMap;
 import cubicchunks.util.XZMap;
+import cubicchunks.visibility.IViewFormula;
+import cubicchunks.visibility.VanillaViewFormula;
 import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.IProviderExtras;
 import cubicchunks.world.column.Column;

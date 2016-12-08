@@ -44,7 +44,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import cubicchunks.lighting.FirstLightProcessor;
 import cubicchunks.server.ChunkGc;
 import cubicchunks.server.CubeProviderServer;
-import cubicchunks.server.experimental.PlayerCubeTracker;
+import cubicchunks.server.visibility.PlayerCubeTracker;
 import cubicchunks.world.CubeWorldEntitySpawner;
 import cubicchunks.world.CubicSaveHandler;
 import cubicchunks.world.ICubicWorldServer;

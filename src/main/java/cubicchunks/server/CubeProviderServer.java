@@ -43,7 +43,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.server.chunkio.CubeIO;
 import cubicchunks.server.chunkio.async.forge.AsyncWorldIOExecutor;
-import cubicchunks.server.experimental.ICubeRequest;
+import cubicchunks.server.chunkio.async.ICubeRequest;
 import cubicchunks.util.CubePos;
 import cubicchunks.util.XYZMap;
 import cubicchunks.world.ICubeProvider;

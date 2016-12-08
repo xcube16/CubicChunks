@@ -21,7 +21,7 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package cubicchunks.server.experimental;
+package cubicchunks.server.visibility;
 
 import com.google.common.collect.Lists;
 
@@ -44,7 +44,9 @@ import cubicchunks.network.PacketCube;
 import cubicchunks.network.PacketCubeBlockChange;
 import cubicchunks.network.PacketDispatcher;
 import cubicchunks.network.PacketUnloadCube;
+import cubicchunks.server.chunkio.async.ICubeRequest;
 import cubicchunks.util.CubePos;
+import cubicchunks.util.Flushable;
 import cubicchunks.util.XYZAddressable;
 import cubicchunks.util.ticket.ITicket;
 import cubicchunks.world.IProviderExtras;

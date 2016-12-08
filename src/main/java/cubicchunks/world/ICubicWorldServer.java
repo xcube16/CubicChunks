@@ -32,7 +32,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.lighting.FirstLightProcessor;
 import cubicchunks.server.CubeProviderServer;
-import cubicchunks.server.experimental.PlayerCubeTracker;
+import cubicchunks.server.visibility.PlayerCubeTracker;
 import mcp.MethodsReturnNonnullByDefault;
 
 @ParametersAreNonnullByDefault
