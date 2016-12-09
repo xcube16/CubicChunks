@@ -226,12 +226,9 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	 * @param player the player that moved
 	 */
 	@Override public void updateMovingPlayer(EntityPlayerMP player) {
-		IViewFormula newView = formulas.get(player).next(player);
-		if(newView == null){
+		if(updateView(player, formulas.get(player).next(player))){
 			return;
 		}
-
-		updateView(player, newView);
 		//TODO: provide re-sort hint to async cube getting system
 	}
 
@@ -250,20 +247,19 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 	}
 
 	/**
-	 * Called when the view distance changes
+	 * Called by when the view distance changes
 	 *
-	 * @param radius the new view distance
+	 * @param radius Any number you want! It will be ignored! :P
 	 */
 	@Override public void setPlayerViewRadius(int radius) {
 		if(formulas == null) {
 			return; // PlayerChunkMap's constructor calls this method, so this is a work-a-round
 		}
 
-		for(Map.Entry<EntityPlayerMP, IViewFormula> entry : formulas.entrySet()){
+		formulas.entrySet().forEach(entry -> {
 			EntityPlayerMP player = entry.getKey();
-
-			updateView(player, new VanillaViewFormula(radius, player));
-		}
+			updateView(player, entry.getValue().next(player));
+		});
 		//TODO: provide re-sort hint to async cube getting system (maybe its not important here?)
 	}
 
@@ -377,7 +373,17 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 		tracker.removePlayer(player);
 	}
 
-	private void updateView(EntityPlayerMP player,IViewFormula newView) {
+	/**
+	 * Updates a player's visible area
+	 *
+	 * @param player The player
+	 * @param newView The new view formula
+	 * @return true if the update was successful
+	 */
+	private boolean updateView(EntityPlayerMP player, @Nullable IViewFormula newView) {
+		if (newView == null) {
+			return false;
+		}
 		IViewFormula oldView = formulas.get(player);
 
 		// find cubes that don't show up on the newView (droped Cubes)
@@ -395,5 +401,6 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 		});
 
 		formulas.put(player, newView);
+		return true;
 	}
 }

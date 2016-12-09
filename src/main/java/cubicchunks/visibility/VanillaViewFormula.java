@@ -30,6 +30,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.util.Coords;
 import cubicchunks.util.XYZFunction;
+import cubicchunks.world.cube.Cube;
 import mcp.MethodsReturnNonnullByDefault;
 
 @ParametersAreNonnullByDefault
@@ -66,13 +67,18 @@ public class VanillaViewFormula implements IViewFormula {
 	@Override
 	@Nullable
 	public IViewFormula next(EntityPlayerMP player) {
+		int newRadius = player.getServerWorld().getMinecraftServer().getPlayerList().getViewDistance();
+		if (radius != newRadius) {
+			return new VanillaViewFormula(newRadius, player);
+		}
+
 		// did the player move far enough to matter?
 		int blockDX = (int) player.posX - posX;
 		int blockDY = (int) player.posY - posY;
 		int blockDZ = (int) player.posZ - posZ;
 
 		int distanceSquared = blockDX*blockDX + blockDY*blockDY + blockDZ*blockDZ;
-		if(distanceSquared < 16 * 16){
+		if(distanceSquared < Cube.SIZE * Cube.SIZE){
 			return null; // did not move much, so don't take a new snapshot
 		}
 
