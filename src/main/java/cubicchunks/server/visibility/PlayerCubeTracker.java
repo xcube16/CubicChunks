@@ -43,6 +43,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import cubicchunks.CubicChunks;
+import cubicchunks.IConfigUpdateListener;
 import cubicchunks.debug.DebugCapability;
 import cubicchunks.server.CubeProviderServer;
 import cubicchunks.util.Coords;
@@ -64,7 +66,7 @@ import cubicchunks.world.column.Column;
 @ParametersAreNonnullByDefault
 //@MethodsReturnNonnullByDefault vary annoying for getCubeTracker() and getColumnTacker()
 // as there nullability depends on the args
-public class PlayerCubeTracker extends PlayerChunkMap {
+public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateListener{
 
 	private XYZMap<CubeTracker> cubeTrackers = new XYZMap<>(0.75F, 4000);
 	private XZMap<ColumnTracker> columnTrackers = new XZMap<>(0.75F, 500);
@@ -74,12 +76,30 @@ public class PlayerCubeTracker extends PlayerChunkMap {
 
 	private Map<EntityPlayerMP, IViewFormula> formulas = new HashMap<>();
 
+	// TODO: This is data that is used by some view formulas... find a way to get it out of here!
+	private int verticalView = CubicChunks.Config.DEFAULT_VERTICAL_CUBE_LOAD_DISTANCE;
+
 	private CubeProviderServer provider;
 
 	public PlayerCubeTracker(ICubicWorldServer worldServer) {
 		super((WorldServer) worldServer);
 		this.provider = worldServer.getCubeCache();
+		CubicChunks.addConfigChangeListener(this);
 	}
+
+	// TODO: remove (see above todo)
+	@Override public void onConfigUpdate(CubicChunks.Config config) {
+		if (verticalView != config.getVerticalCubeLoadDistance()) {
+			verticalView = config.getVerticalCubeLoadDistance();
+			setPlayerViewRadius(0);
+		}
+	}
+
+	// TODO: remove (see above todo)
+	public int getVerticalView() {
+		return verticalView;
+	}
+
 
 	/**
 	 * Marks a position's height to be re-sent to clients

@@ -226,20 +226,22 @@ public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flush
 	/**
 	 * Gets the priority of the Cube
 	 * Cubes closer to a player will get higher priority than cubes far away
+	 *
+	 * @return A value from 0.0f to 1.0f
 	 */
 	@Override public float getPriority() {
-		float lowest = 1024.0f;
+		float closest = Float.MAX_VALUE;
 		for (EntityPlayerMP player : players) {
 			int dx = player.chunkCoordX - getX();
 			int dy = player.chunkCoordY - getY();
 			int dz = player.chunkCoordZ - getZ();
 
-			float priority = dx*dx + dy*dy + dz*dz;
-			if (priority < lowest) {
-				lowest = priority;
+			float close = dx*dx + dy*dy + dz*dz;
+			if (close < closest) {
+				closest = close;
 			}
 		}
-		return lowest;
+		return 1.0f / (closest + 1.0f);
 	}
 
 	/**

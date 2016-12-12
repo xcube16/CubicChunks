@@ -24,12 +24,14 @@
 package cubicchunks.visibility;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.world.WorldServer;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import cubicchunks.util.Coords;
 import cubicchunks.util.XYZFunction;
+import cubicchunks.world.ICubicWorldServer;
 import cubicchunks.world.cube.Cube;
 import mcp.MethodsReturnNonnullByDefault;
 
@@ -46,14 +48,17 @@ public class VanillaViewFormula implements IViewFormula {
 	private final int cubeZ;
 
 	private final int radius;
+	private final int vertical;
 
 	public VanillaViewFormula(EntityPlayerMP player) {
 		this(player.getServerWorld().getMinecraftServer().getPlayerList().getViewDistance(),
+			((ICubicWorldServer) player.getServerWorld()).getPlayerCubeMap().getVerticalView(),
 			 player);
 	}
 
-	public VanillaViewFormula(int radius, EntityPlayerMP player) {
+	private VanillaViewFormula(int radius, int vertical, EntityPlayerMP player) {
 		this.radius = radius;
+		this.vertical = vertical;
 
 		this.posX = (int) player.posX;
 		this.posY = (int) player.posY;
@@ -67,9 +72,12 @@ public class VanillaViewFormula implements IViewFormula {
 	@Override
 	@Nullable
 	public IViewFormula next(EntityPlayerMP player) {
-		int newRadius = player.getServerWorld().getMinecraftServer().getPlayerList().getViewDistance();
-		if (radius != newRadius) {
-			return new VanillaViewFormula(newRadius, player);
+		// did the view distance change?
+		WorldServer world = player.getServerWorld();
+		int newRadius = world.getMinecraftServer().getPlayerList().getViewDistance();
+		int newVertical = ((ICubicWorldServer) world).getPlayerCubeMap().getVerticalView();
+		if (radius != newRadius || vertical != newVertical) {
+			return new VanillaViewFormula(newRadius, newVertical, player);
 		}
 
 		// did the player move far enough to matter?
@@ -78,18 +86,18 @@ public class VanillaViewFormula implements IViewFormula {
 		int blockDZ = (int) player.posZ - posZ;
 
 		int distanceSquared = blockDX*blockDX + blockDY*blockDY + blockDZ*blockDZ;
-		if(distanceSquared < Cube.SIZE * Cube.SIZE){
-			return null; // did not move much, so don't take a new snapshot
+		if (distanceSquared >= Cube.SIZE * Cube.SIZE) {
+			return new VanillaViewFormula(radius, vertical, player);
 		}
 
-		return new VanillaViewFormula(radius, player);
+		return null; // did not move much, so don't take a new snapshot
 	}
 
 	@Override
 	public void computePositions(XYZFunction output) {
-		for(int x = cubeX - radius;x <= cubeX + radius;x++){
-			for(int y = cubeY - radius;y <= cubeY + radius;y++){
-				for(int z = cubeZ - radius;z <= cubeZ + radius;z++){
+		for (int x = cubeX - radius; x <= cubeX + radius; x++) {
+			for (int y = cubeY - vertical; y <= cubeY + vertical; y++) {
+				for (int z = cubeZ - radius; z <= cubeZ + radius; z++) {
 					output.apply(x, y, z);
 				}
 			}
@@ -98,7 +106,7 @@ public class VanillaViewFormula implements IViewFormula {
 
 	@Override public boolean contains(int x, int y, int z) {
 		return x >= cubeX - radius && x <= cubeX + radius
-			&& y >= cubeY - radius && y <= cubeY + radius
+			&& y >= cubeY - vertical && y <= cubeY + vertical
 			&& z >= cubeZ - radius && z <= cubeZ + radius;
 	}
 }
