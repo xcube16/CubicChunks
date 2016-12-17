@@ -53,7 +53,7 @@ import mcp.MethodsReturnNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable {
+public class TrackedColumn implements XZAddressable, Consumer<Column>, Flushable {
 
 	private PlayerCubeTracker tracker;
 
@@ -66,14 +66,14 @@ public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable
 	private Map<EntityPlayerMP, PlayerColumnView> playerColumns = new HashMap<>();
 	private List<PlayerColumnView> players = Lists.newArrayListWithExpectedSize(1);
 
-	ColumnTracker(PlayerCubeTracker tracker, ChunkPos pos) {
+	TrackedColumn(PlayerCubeTracker tracker, ChunkPos pos) {
 		this.tracker = tracker;
 		this.pos = pos;
 	}
 
 	/**
 	 * Adds a Cube to a player's view of the Column
-	 * This should be called when a player is added to a CubeTracker
+	 * This should be called when a player is added to a TrackedCube
 	 *
 	 * @param player the player
 	 * @param cubeY the y coordinate of the Cube
@@ -84,7 +84,7 @@ public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable
 
 	/**
 	 * Removes a Cube from a player's view of the Column
-	 * This should be called when a player is removed form a CubeTracker
+	 * This should be called when a player is removed form a TrackedCube
 	 *
 	 * @param player the player
 	 * @param cubeY the y coordinate of the Cube
@@ -202,14 +202,14 @@ public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable
 		if (this.column == null) {
 			if (players.isEmpty()) {
 				tracker.getProvider().cancelAsyncColumn(this); // cancel the request if any
-				tracker.removeColumnTracker(this);
+				tracker.removeTrackedColumn(this);
 			}
 		} else {
 			PacketDispatcher.sendTo(new PacketUnloadColumn(pos), player);
 
 			if (players.isEmpty()) {
 				tracker.getProvider().cancelAsyncColumn(this); // cancel the request if any
-				tracker.removeColumnTracker(this);
+				tracker.removeTrackedColumn(this);
 			}
 		}
 	}
@@ -246,11 +246,11 @@ public class ColumnTracker implements XZAddressable, Consumer<Column>, Flushable
 			if (maxCubeY == cubeY) {
 				do {
 					maxCubeY--;
-				} while (maxCubeY >= minCubeY && tracker.getCubeTracker(getX(), maxCubeY, getZ()) == null);
+				} while (maxCubeY >= minCubeY && tracker.getTrackedCube(getX(), maxCubeY, getZ()) == null);
 			} else if (minCubeY == cubeY) {
 				do {
 					minCubeY++;
-				} while (maxCubeY >= minCubeY && tracker.getCubeTracker(getX(), minCubeY, getZ()) == null);
+				} while (maxCubeY >= minCubeY && tracker.getTrackedCube(getX(), minCubeY, getZ()) == null);
 			} else {
 				return;
 			}

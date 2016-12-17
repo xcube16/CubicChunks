@@ -64,12 +64,12 @@ import cubicchunks.world.column.Column;
  * Compatibility for PlayerChunkMap
  */
 @ParametersAreNonnullByDefault
-//@MethodsReturnNonnullByDefault vary annoying for getCubeTracker() and getColumnTacker()
+//@MethodsReturnNonnullByDefault vary annoying for getTrackedCube() and getColumnTacker()
 // as there nullability depends on the args
 public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateListener{
 
-	private XYZMap<CubeTracker> cubeTrackers = new XYZMap<>(0.75F, 4000);
-	private XZMap<ColumnTracker> columnTrackers = new XZMap<>(0.75F, 500);
+	private XYZMap<TrackedCube> trackedCubes = new XYZMap<>(0.75F, 4000);
+	private XZMap<TrackedColumn> trackedColumns = new XZMap<>(0.75F, 500);
 
 	// A list of all trackers to be flushed on the next tick
 	private List<Flushable> flushQueue = Lists.newArrayList();
@@ -108,7 +108,7 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 	 * @param z the z coordinate in block coordinates
 	 */
 	public void markHeightForUpdate(int x, int z) {
-		ColumnTracker unit = this.getColumnTracker(
+		TrackedColumn unit = this.getTrackedColumn(
 			Coords.blockToCube(x),
 			Coords.blockToCube(z));
 
@@ -127,8 +127,8 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 		return provider;
 	}
 
-	CubeTracker getCubeTracker(int cubeX, int cubeY, int cubeZ) {
-		return cubeTrackers.get(cubeX, cubeY, cubeZ);
+	TrackedCube getTrackedCube(int cubeX, int cubeY, int cubeZ) {
+		return trackedCubes.get(cubeX, cubeY, cubeZ);
 	}
 
 	/**
@@ -138,13 +138,13 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 		flushQueue.add(tracker);
 	}
 
-	void removeCubeTracker(CubeTracker tracker) {
-		cubeTrackers.remove(tracker);
+	void removeTrackedCube(TrackedCube tracker) {
+		trackedCubes.remove(tracker);
 		flushQueue.remove(tracker);
 	}
 
-	void removeColumnTracker(ColumnTracker tracker) {
-		columnTrackers.remove(tracker);
+	void removeTrackedColumn(TrackedColumn tracker) {
+		trackedColumns.remove(tracker);
 		flushQueue.remove(tracker);
 	}
 
@@ -178,8 +178,8 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 
 		IProviderExtras.Requirement req = getPlayerReq(player);
 		formula.computePositions((x, y, z) -> {
-			getColumnTracker(x, z).checkRequirement(req);
-			getCubeTracker(x, y, z).checkRequirement(req);
+			getTrackedColumn(x, z).checkRequirement(req);
+			getTrackedCube(x, y, z).checkRequirement(req);
 		});
 	}
 
@@ -204,7 +204,7 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 	 * @param pos The position of the block that changed
 	 */
 	@Override public void markBlockForUpdate(BlockPos pos) {
-		CubeTracker unit = this.getCubeTracker(
+		TrackedCube unit = this.getTrackedCube(
 			Coords.blockToCube(pos.getX()),
 			Coords.blockToCube(pos.getY()),
 			Coords.blockToCube(pos.getZ()));
@@ -233,7 +233,7 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 	 * @param player the player being removed
 	 */
 	@Override public void removePlayer(EntityPlayerMP player) {
-		// getCubeTracker() should not return null, if it does, its an inconsistency and should crash hard!
+		// getTrackedCube() should not return null, if it does, its an inconsistency and should crash hard!
 		formulas.remove(player).computePositions((x, y, z) ->
 			removePlayerFromTracker(player, x, y, z));
 		//TODO: provide re-sort hint to async cube getting system (maybe its not important here?)
@@ -262,7 +262,7 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 	 * @return weather or not {@code player} can see the Column
 	 */
 	@Override public boolean isPlayerWatchingChunk(EntityPlayerMP player, int columnX, int columnZ) {
-		ColumnTracker tracker = getColumnTracker(columnX, columnZ);
+		TrackedColumn tracker = getTrackedColumn(columnX, columnZ);
 		return tracker != null && tracker.isPlayerWatching(player);
 	}
 
@@ -354,13 +354,13 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 	// ======= Private Methods =======
 	// ===============================
 
-	private ColumnTracker getColumnTracker(int columnX, int columnZ) {
-		return columnTrackers.get(columnX, columnZ);
+	private TrackedColumn getTrackedColumn(int columnX, int columnZ) {
+		return trackedColumns.get(columnX, columnZ);
 	}
 
 	/**
-	 * Adds a player to a CubeTracker at the given location
-	 * (players are added to ColumnTrackers automatically)
+	 * Adds a player to a TrackedCube at the given location
+	 * (players are added to TrackedColumns automatically)
 	 *
 	 * @param player the player that should see the Cube
 	 * @param cubeX the x coordinate of the Cube
@@ -368,19 +368,19 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 	 * @param cubeZ the z coordinate of the Cube
 	 */
 	private void addPlayerToTracker(EntityPlayerMP player, int cubeX, int cubeY, int cubeZ) {
-		ColumnTracker columnTracker = getColumnTracker(cubeX, cubeZ);
-		if(columnTracker == null) {
-			columnTracker = new ColumnTracker(this, new ChunkPos(cubeX, cubeZ));
-			columnTrackers.put(columnTracker);
+		TrackedColumn trackedColumn = getTrackedColumn(cubeX, cubeZ);
+		if(trackedColumn == null) {
+			trackedColumn = new TrackedColumn(this, new ChunkPos(cubeX, cubeZ));
+			trackedColumns.put(trackedColumn);
 		}
-		columnTracker.addCubeToPlayer(player, cubeY);
+		trackedColumn.addCubeToPlayer(player, cubeY);
 
-		CubeTracker cubeTracker = getCubeTracker(cubeX, cubeY, cubeZ);
-		if(cubeTracker == null){
-			cubeTracker = new CubeTracker(this, player, new CubePos(cubeX, cubeY, cubeZ));
-			cubeTrackers.put(cubeTracker);
+		TrackedCube trackedCube = getTrackedCube(cubeX, cubeY, cubeZ);
+		if(trackedCube == null){
+			trackedCube = new TrackedCube(this, player, new CubePos(cubeX, cubeY, cubeZ));
+			trackedCubes.put(trackedCube);
 		} else {
-			cubeTracker.addPlayer(player);
+			trackedCube.addPlayer(player);
 		}
 	}
 
@@ -388,8 +388,8 @@ public class PlayerCubeTracker extends PlayerChunkMap implements IConfigUpdateLi
 	 * Just a helper method so other parts don't need to bother with Column trackers
 	 */
 	private void removePlayerFromTracker(EntityPlayerMP player, int cubeX, int cubeY, int cubeZ) {
-		CubeTracker tracker = getCubeTracker(cubeX, cubeY, cubeZ);
-		getColumnTracker(cubeX, cubeZ).removeCubeFromPlayer(player, tracker.getY());
+		TrackedCube tracker = getTrackedCube(cubeX, cubeY, cubeZ);
+		getTrackedColumn(cubeX, cubeZ).removeCubeFromPlayer(player, tracker.getY());
 		tracker.removePlayer(player);
 	}
 

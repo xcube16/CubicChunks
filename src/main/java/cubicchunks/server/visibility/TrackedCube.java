@@ -61,7 +61,7 @@ import mcp.MethodsReturnNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flushable {
+public class TrackedCube implements XYZAddressable, ICubeRequest, ITicket, Flushable {
 
 	private PlayerCubeTracker tracker;
 
@@ -75,7 +75,7 @@ public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flush
 	// the players that can see this Cube
 	private List<EntityPlayerMP> players = Lists.newArrayListWithExpectedSize(1);
 
-	CubeTracker(PlayerCubeTracker tracker, EntityPlayerMP player, CubePos pos) {
+	TrackedCube(PlayerCubeTracker tracker, EntityPlayerMP player, CubePos pos) {
 		this.tracker = tracker;
 		this.pos = pos;
 
@@ -83,7 +83,7 @@ public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flush
 	}
 
 	/**
-	 * Adds a player to this CubeTracker
+	 * Adds a player to this TrackedCube
 	 * The player will now be able to see the Cube
 	 *
 	 * @param player the player that should see the Cube
@@ -102,7 +102,7 @@ public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flush
 	}
 
 	/**
-	 * Removes a player from this CubeTracker
+	 * Removes a player from this TrackedCube
 	 * The player will no longer be able to see the Cube
 	 *
 	 * @param player the player that should not see the Cube
@@ -115,7 +115,7 @@ public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flush
 		if (cube == null) {
 			if(players.isEmpty()){
 				tracker.getProvider().cancelAsyncCube(this); // cancel the request if any
-				tracker.removeCubeTracker(this);
+				tracker.removeTrackedCube(this);
 			}
 		} else {
 			PacketDispatcher.sendTo(new PacketUnloadCube(pos), player);
@@ -123,7 +123,7 @@ public class CubeTracker implements XYZAddressable, ICubeRequest, ITicket, Flush
 			if (players.isEmpty()) {
 				tracker.getProvider().cancelAsyncCube(this); // cancel the request if any
 				cube.getTickets().remove(this);
-				tracker.removeCubeTracker(this);
+				tracker.removeTrackedCube(this);
 			}
 		}
 	}
